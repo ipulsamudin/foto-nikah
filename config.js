@@ -24,6 +24,13 @@ window.FOTO_NIKAH = {
   // meneruskannya, bisa melihat dan mengunduh seluruh foto.
   albumUrl: 'https://drive.google.com/drive/folders/1Gb-Vd7dFAgYqkhq8AufP_jyUuzaFhq0B',
 
+  // Alamat yang di-encode ke kartu QR cetak.
+  //
+  // Diisi eksplisit, bukan dibiarkan jatuh ke location: tanpa ini, QR yang
+  // dicetak ikut berubah tergantung dari mana cetak/qr.html dibuka (localhost,
+  // XAMPP, atau Pages). Kartu yang sudah tersebar di meja tidak bisa diperbaiki.
+  qrUrl: 'https://ipulsamudin.github.io/foto-nikah/',
+
   // Tautan kembali ke undangan digital, bila ingin ditampilkan.
   undanganUrl: '',
 
