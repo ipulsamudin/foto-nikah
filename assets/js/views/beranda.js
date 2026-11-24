@@ -103,7 +103,11 @@ function gambarPanelJepret(induk, acara) {
       <p class="bidik-cap">${esc(acara.mempelai || '')} &middot; ${esc(acara.tanggalSingkat || '')}</p>
     </div>
     <div class="aksi-jepret">
-      <button id="tombol-jepret" class="shutter" aria-label="Ambil foto"><span></span></button>
+      <!-- Tombol jepret sengaja tersembunyi sampai kamera benar-benar punya
+           gambar. Kalau ditampilkan lebih awal, tamu menekannya, tidak terjadi
+           apa-apa, lalu menyimpulkan booth-nya rusak. -->
+      <button id="tombol-jepret" class="shutter" aria-label="Ambil foto" hidden><span></span></button>
+      <p id="bidik-menyiapkan" class="redup kecil">Menyiapkan kamera…</p>
     </div>
     <div class="aksi-samping">
       <button id="tombol-kamera-hp" class="tombol halus">Pakai kamera HP</button>
@@ -132,7 +136,10 @@ async function nyalakanKamera() {
     await kamera.mulai(video);
     pesan.hidden = true;
     video.hidden = false;
+    // mulai() baru selesai setelah video punya ukuran, jadi di titik ini
+    // viewfinder benar-benar hidup dan tombol jepret layak ditampilkan.
     el('#tombol-jepret').hidden = false;
+    el('#bidik-menyiapkan').hidden = true;
   } catch (e) {
     // Bukan keadaan darurat: jalur kamera HP setara dan selalu tersedia.
     tampilPesanBidik(
@@ -145,11 +152,13 @@ function tampilPesanBidik(html) {
   const pesan = el('#bidik-pesan');
   const video = el('#bidik-video');
   const jepret = el('#tombol-jepret');
+  const menyiapkan = el('#bidik-menyiapkan');
   if (!pesan) return;
   pesan.innerHTML = html;
   pesan.hidden = false;
   if (video) video.hidden = true;
   if (jepret) jepret.hidden = true;
+  if (menyiapkan) menyiapkan.hidden = true;
 }
 
 function overlay() {

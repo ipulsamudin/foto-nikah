@@ -197,6 +197,15 @@ try {
 
   /* ------------------------------------------------------- 3. tangkap dari kamera */
 
+  // Tunggu kontrak yang dilihat tamu: tombol jepret baru muncul setelah kamera
+  // benar-benar punya gambar. Menunggu tombol ini, bukan menunggu waktu, membuat
+  // uji ini menguji janji yang sama dengan yang dilihat pengguna.
+  const siapJepret = await tungguSampai(
+    () => cdp.nilai('const b = document.querySelector("#tombol-jepret"); return Boolean(b && !b.hidden);'),
+    20000
+  );
+  cek('tombol jepret muncul setelah kamera siap', Boolean(siapJepret));
+
   const tangkap = await cdp.nilai(`
     const kam = await import('./assets/js/kamera.js');
     const gbr = await import('./assets/js/gambar.js');

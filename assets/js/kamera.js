@@ -95,23 +95,36 @@ export async function mulai(video) {
     // elemennya terlihat, jadi ini tidak fatal.
   }
 
-  await siapkanUkuran(video);
+  if (!(await siapkanUkuran(video))) {
+    hentikan();
+    throw new GalatKamera('belum-siap', 'Kamera terlalu lama menyiapkan gambar.');
+  }
   return aliran;
 }
 
-/** Tunggu sampai videoWidth terisi — tanpa ini jepretan pertama bisa 0x0. */
-function siapkanUkuran(video, batasMs = 4000) {
-  if (video.videoWidth) return Promise.resolve();
+/**
+ * Tunggu sampai video benar-benar punya ukuran.
+ *
+ * Menunggu `loadedmetadata` saja TIDAK cukup, dan ini bukan teori: di runner CI
+ * yang lambat, mulai() selesai sementara videoWidth masih 0, lalu jepretan
+ * pertama gagal dengan "Kamera belum siap". Di HP kelas bawah dengan kamera yang
+ * lambat bangun, tamu akan mengalami hal yang sama persis — tekan tombol,
+ * tidak terjadi apa-apa.
+ *
+ * Maka yang ditunggu adalah KEADAAN (videoWidth > 0), bukan kejadian: event-nya
+ * bisa sudah lewat sebelum pendengar terpasang, sedangkan keadaan tidak bisa
+ * terlewat. Mengembalikan false bila melewati batas waktu, sehingga pemanggil
+ * bisa menampilkan pesan yang jujur alih-alih menjepret bingkai 0x0.
+ */
+function siapkanUkuran(video, batasMs = 8000) {
+  const akhir = Date.now() + batasMs;
   return new Promise((selesai) => {
-    const jam = setTimeout(selesai, batasMs);
-    video.addEventListener(
-      'loadedmetadata',
-      () => {
-        clearTimeout(jam);
-        selesai();
-      },
-      { once: true },
-    );
+    const periksa = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) return selesai(true);
+      if (Date.now() > akhir) return selesai(false);
+      setTimeout(periksa, 60);
+    };
+    periksa();
   });
 }
 
