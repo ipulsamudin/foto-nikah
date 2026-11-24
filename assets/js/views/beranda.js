@@ -15,7 +15,7 @@ import { dariVideo, dariBerkas, buatThumb, GalatGambar } from '../gambar.js';
 import { gambarBingkai } from '../bingkai.js';
 import * as antrean from '../antrean.js';
 import { dorong } from '../unggah.js';
-import { simpanKeGaleri, bisaBagikanBerkas, iniIos } from '../simpan-galeri.js';
+import { simpanKeGaleri, unduhOtomatis, bisaBagikanBerkas, iniIos } from '../simpan-galeri.js';
 
 const KONFIG = () => globalThis.FOTO_NIKAH || {};
 
@@ -244,13 +244,37 @@ async function simpanFoto({ blob, lebar, tinggi, sumber, mentah }) {
     return;
   }
 
-  tampilkanHasil({ blob, berkas, kunci });
+  // Simpan ke galeri HP tanpa menunggu ketukan. Dihitung SEBELUM panel hasil
+  // digambar, supaya teks yang muncul menyatakan apa yang benar-benar terjadi
+  // dan bukan janji.
+  const otomatis = bolehSimpanOtomatis(sumber) && unduhOtomatis(blob, berkas);
+  if (otomatis) {
+    // Blob penuhnya baru dilepas setelah juga terkirim ke Drive; itu diurus
+    // unggah.js lewat antrean.bersihkanBlob().
+    try {
+      await antrean.perbarui(kunci, { keGaleri: true });
+    } catch {
+      /* penandaan ini hanya untuk pembersihan penyimpanan; tidak kritis */
+    }
+  }
+
+  tampilkanHasil({ blob, berkas, kunci, otomatis });
   dorong();
+}
+
+/**
+ * Jalur `<input capture>` sengaja dikecualikan: app kamera bawaan Android SUDAH
+ * menyimpan foto aslinya ke DCIM. Mengunduh lagi hanya menghasilkan dua salinan
+ * berbeda dari satu jepretan, dan yang kedua justru berkualitas lebih rendah.
+ */
+function bolehSimpanOtomatis(sumber) {
+  if (KONFIG().simpanOtomatis === false) return false;
+  return sumber === 'kamera';
 }
 
 /* --------------------------------------------------------------- panel hasil */
 
-function tampilkanHasil({ blob, berkas, kunci, tanpaAntrean }) {
+function tampilkanHasil({ blob, berkas, kunci, tanpaAntrean, otomatis }) {
   fotoTerakhir = { blob, nama: berkas, kunci };
   const induk = el('[data-panel="hasil"]');
   const url = taman.url(blob);
@@ -265,14 +289,22 @@ function tampilkanHasil({ blob, berkas, kunci, tanpaAntrean }) {
       ? 'Di iPhone, cara termudah: <b>tahan foto di atas</b> lalu pilih <b>Add to Photos</b>.'
       : 'Foto akan masuk ke folder <b>Download</b> dan terlihat di galeri.';
 
+  // Dua tampilan berbeda, karena keadaannya memang berbeda. Menampilkan tombol
+  // "Simpan" besar padahal fotonya sudah tersimpan hanya membuat tamu ragu.
+  const bagianSimpan = otomatis
+    ? `<p class="petunjuk"><b>Tersimpan ke galeri HP Anda.</b></p>
+       <p class="petunjuk redup">Cek folder <b>Download</b> di app Galeri atau Files.</p>
+       <button id="tombol-simpan" class="tombol halus">Simpan sekali lagi</button>`
+    : `<button id="tombol-simpan" class="tombol utama">Simpan ke galeri HP</button>
+       <p class="petunjuk">${petunjuk}</p>
+       <p class="petunjuk redup">Atau <b>tahan foto di atas</b> lalu pilih simpan gambar.</p>`;
+
   induk.innerHTML = `
     <img id="hasil-gambar" class="hasil-gambar" src="${url}" alt="Foto yang baru diambil">
     <p class="redup kecil">${ukuranSingkat(blob.size)} &middot; ${
       tanpaAntrean ? 'belum masuk antrean' : 'tersimpan di HP, menunggu terkirim'
     }</p>
-    <button id="tombol-simpan" class="tombol utama">Simpan ke galeri HP</button>
-    <p class="petunjuk">${petunjuk}</p>
-    <p class="petunjuk redup">Atau <b>tahan foto di atas</b> lalu pilih simpan gambar.</p>
+    ${bagianSimpan}
     <button id="tombol-lagi" class="tombol halus">Ambil foto lagi</button>
   `;
 

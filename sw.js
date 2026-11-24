@@ -9,7 +9,7 @@
 // sudah diantre. Janji aplikasi ini — "jepret sekarang, kirim nanti" — hanya
 // benar kalau shell-nya offline-first.
 
-const VERSI = 'foto-nikah-v3';
+const VERSI = 'foto-nikah-v4';
 
 const ASET = [
   './',

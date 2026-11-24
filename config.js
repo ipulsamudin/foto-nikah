@@ -34,6 +34,13 @@ window.FOTO_NIKAH = {
   // Tautan kembali ke undangan digital, bila ingin ditampilkan.
   undanganUrl: '',
 
+  // true = foto langsung terunduh ke galeri HP begitu jepretan jadi, tanpa
+  // tamu menekan apa pun. Matikan bila notifikasi unduhan di venue mengganggu;
+  // tombol simpan manual tetap ada. Tidak berlaku di iOS (lihat simpan-galeri.js)
+  // dan tidak berlaku untuk foto dari jalur "Pakai kamera HP", karena app kamera
+  // bawaan sudah menyimpan aslinya sendiri.
+  simpanOtomatis: true,
+
   // false = jepret tanpa bingkai/watermark.
   watermark: true,
 

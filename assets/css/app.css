@@ -39,6 +39,16 @@
 
 * { box-sizing: border-box; }
 
+/* Atribut `hidden` harus SELALU menang.
+ *
+ * Aturan bawaan browser hanyalah `[hidden] { display: none }`, dan itu KALAH
+ * spesifisitas terhadap selector kelas. Akibatnya `.bidik-pesan { display: flex }`
+ * membuat `pesan.hidden = true` di JS tidak melakukan apa pun: lapisan pesan
+ * tetap tergambar menutupi video, dan viewfinder tampak hitam padahal kameranya
+ * hidup. Satu baris ini menutup seluruh kelas bug itu — termasuk untuk elemen
+ * ber-`display` yang ditambahkan nanti. Diuji oleh tools/cek-impor.mjs. */
+[hidden] { display: none !important; }
+
 html, body { margin: 0; }
 
 body {

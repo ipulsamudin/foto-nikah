@@ -198,13 +198,40 @@ try {
   /* ------------------------------------------------------- 3. tangkap dari kamera */
 
   // Tunggu kontrak yang dilihat tamu: tombol jepret baru muncul setelah kamera
-  // benar-benar punya gambar. Menunggu tombol ini, bukan menunggu waktu, membuat
-  // uji ini menguji janji yang sama dengan yang dilihat pengguna.
-  const siapJepret = await tungguSampai(
-    () => cdp.nilai('const b = document.querySelector("#tombol-jepret"); return Boolean(b && !b.hidden);'),
-    20000
+  // benar-benar punya gambar.
+  //
+  // Yang diperiksa adalah VISIBILITAS TERHITUNG, bukan atribut `hidden`. Versi
+  // lama memeriksa atributnya, dan itu sebabnya dua puluh pemeriksaan hijau
+  // sementara tamu melihat layar hitam: atribut hidden memang terpasang, tapi
+  // aturan CSS mengalahkannya sehingga elemennya tetap tergambar.
+  const terlihat = (pemilih) =>
+    `const n = document.querySelector('${pemilih}');` +
+    `return n ? getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0 : false;`;
+
+  const siapJepret = await tungguSampai(() => cdp.nilai(terlihat('#tombol-jepret')), 20000);
+  cek('tombol jepret benar-benar terlihat setelah kamera siap', Boolean(siapJepret));
+
+  const lapisan = await cdp.nilai(`
+    const p = document.querySelector('#bidik-pesan');
+    const v = document.querySelector('#bidik-video');
+    const kotak = v ? v.getBoundingClientRect() : { width: 0, height: 0 };
+    return {
+      pesanTampil: p ? getComputedStyle(p).display !== 'none' : false,
+      videoTampil: v ? getComputedStyle(v).display !== 'none' : false,
+      lebar: Math.round(kotak.width),
+      tinggi: Math.round(kotak.height)
+    };
+  `);
+  cek(
+    'lapisan pesan TIDAK menutupi viewfinder (penyebab layar hitam)',
+    lapisan.pesanTampil === false,
+    JSON.stringify(lapisan)
   );
-  cek('tombol jepret muncul setelah kamera siap', Boolean(siapJepret));
+  cek(
+    'elemen video tergambar dengan ukuran nyata',
+    lapisan.videoTampil && lapisan.lebar > 0 && lapisan.tinggi > 0,
+    JSON.stringify(lapisan)
+  );
 
   const tangkap = await cdp.nilai(`
     const kam = await import('./assets/js/kamera.js');
@@ -364,6 +391,39 @@ try {
     'tidak ada berkas ketiga walau dikirim tiga kali',
     jumlahAkhir.terpakai_hari_ini === 2,
     'server mencatat ' + jumlahAkhir.terpakai_hari_ini
+  );
+
+  /* ------------------------------- 7b. jepret lewat tombol + simpan otomatis */
+
+  // Dijalankan SETELAH semua pemeriksaan jumlah berkas di server, karena
+  // jepretan ini menambah satu unggahan lagi.
+  //
+  // Batas kejujurannya: headless tidak bisa membuktikan berkasnya benar-benar
+  // mendarat di folder Download sistem. Yang dibuktikan di sini adalah jalur
+  // kodenya berjalan tanpa ketukan kedua — sisanya ada di docs/uji-perangkat.md.
+  const otomatis = await cdp.nilai(`
+    const a = await import('./assets/js/antrean.js');
+    const sebelum = (await a.ambilSemua()).length;
+    document.querySelector('#tombol-jepret').click();
+    for (let i = 0; i < 40; i++) {
+      if ((await a.ambilSemua()).length > sebelum) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    const semua = await a.ambilSemua();
+    const panel = document.querySelector('[data-panel="hasil"]');
+    return {
+      bertambah: semua.length > sebelum,
+      keGaleri: semua[0] && semua[0].keGaleri,
+      sumber: semua[0] && semua[0].sumber,
+      teks: panel ? panel.textContent.replace(/\\s+/g, ' ').slice(0, 140) : ''
+    };
+  `);
+  cek('menekan tombol jepret menambah baris antrean', otomatis.bertambah === true, JSON.stringify(otomatis));
+  cek('foto ditandai sudah tersimpan ke galeri tanpa ketukan kedua', otomatis.keGaleri === true, JSON.stringify(otomatis));
+  cek(
+    'panel hasil menyatakan foto sudah tersimpan',
+    /Tersimpan ke galeri/i.test(otomatis.teks),
+    JSON.stringify(otomatis)
   );
 
   /* ------------------------------------------------- 8. halaman Foto Saya hidup */

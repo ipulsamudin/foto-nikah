@@ -256,6 +256,20 @@ for (const host of ['script.google.com', 'script.googleusercontent.com']) {
   }
 }
 
+/* ------------------------------------------- 9: atribut hidden harus menang */
+
+// Aturan bawaan browser `[hidden] { display: none }` kalah spesifisitas dari
+// selector kelas. Tanpa penguat global, satu `display: flex` di stylesheet
+// membuat elemen yang "disembunyikan" lewat JS tetap tergambar — dan itulah
+// yang pernah membuat viewfinder tampak hitam padahal kameranya hidup.
+const cssUtama = readFileSync(join(AKAR, 'assets', 'css', 'app.css'), 'utf8');
+if (!/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(cssUtama)) {
+  galat.push(
+    'app.css: aturan global [hidden] { display: none !important } hilang — ' +
+      'elemen yang disembunyikan lewat JS bisa tetap tergambar'
+  );
+}
+
 /* -------------------------------------------------------- data/api.json waras */
 
 const api = JSON.parse(readFileSync(join(AKAR, 'data', 'api.json'), 'utf8'));

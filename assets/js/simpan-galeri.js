@@ -83,6 +83,33 @@ export async function simpanKeGaleri(blob, nama = 'foto.jpg') {
 }
 
 /**
+ * Simpan tanpa menunggu ketukan, dipanggil tepat setelah jepretan jadi.
+ *
+ * SENGAJA tidak memakai share sheet, walaupun share sheet mendarat lebih rapi di
+ * app Foto: share sheet menuntut ketukan, dan yang diminta justru "langsung
+ * tersimpan". Jadi di sini hanya jalur unduhan.
+ *
+ * Mengembalikan false di iOS, dan itu bukan kemalasan: unduhan otomatis di iOS
+ * mendarat di app Files, bukan app Foto, dan Safari memblokir unduhan yang tidak
+ * berasal dari gestur. Di iOS, tombol satu-ketukan + instruksi tahan-foto tetap
+ * jalan terbaik yang tersedia.
+ *
+ * @returns {boolean} true bila unduhan benar-benar dimulai
+ */
+export function unduhOtomatis(blob, nama = 'foto.jpg') {
+  if (iniIos()) return false;
+  try {
+    unduh(blob, nama);
+    return true;
+  } catch {
+    // Browser bisa menolak unduhan otomatis (mis. pengaturan "unduh banyak
+    // berkas" belum diizinkan). Tombol manual di panel hasil tetap ada sebagai
+    // jaring pengaman, jadi kegagalan di sini tidak menghilangkan apa pun.
+    return false;
+  }
+}
+
+/**
  * Simpan beberapa foto sekaligus ("Simpan semua ke galeri").
  *
  * iOS menerima beberapa berkas dalam satu share sheet dan menampilkan

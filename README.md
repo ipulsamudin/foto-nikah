@@ -161,7 +161,7 @@ sebelum memesan banyak.**
 
 ```bash
 npm test        # selftest.mjs (71 pemeriksaan) + cek-impor.mjs
-npm run smoke   # 19 pemeriksaan di Chrome/Edge headless, kamera palsu
+npm run smoke   # 25 pemeriksaan di Chrome/Edge headless, kamera palsu
 npm run cek     # cek-endpoint.mjs terhadap backend yang ter-deploy
 npm run icons   # regenerasi ikon PWA dari geometri di tools/make-icons.mjs
 ```
@@ -227,8 +227,17 @@ foto-nikah/
   *Save Image*, tapi itu tidak dijamin: pada sebagian iOS target share mengambil
   tautan alih-alih berkas. Karena itu foto selalu ditampilkan utuh di layar
   dengan instruksi **tahan foto → Add to Photos**, yang selalu bekerja.
-- **Di Android, jalur kamera HP bawaan menyimpan foto aslinya ke galeri secara
-  otomatis**; jalur kamera dalam halaman tidak. Keduanya tersedia.
+- **Simpan otomatis ke galeri hanya sejauh yang diizinkan browser.** Di Android
+  dan desktop, foto langsung terunduh begitu jepretan jadi — tanpa tamu menekan
+  apa pun. Tapi unduhan mendarat di folder **Download**: app Galeri dan Files
+  menampilkannya, sedangkan **Google Photos sering tidak mengindeks folder itu**,
+  jadi fotonya bisa saja tidak muncul di sana. Chrome juga dapat bertanya sekali
+  "izinkan situs ini mengunduh banyak berkas". Matikan lewat `simpanOtomatis` di
+  `config.js` bila mengganggu.
+- **Satu-satunya jalur yang pasti masuk DCIM** (dan karena itu pasti terlihat di
+  Google Photos) adalah tombol **Pakai kamera HP**: app kamera bawaan Android
+  menyimpan foto aslinya sendiri, kualitas penuh. Tombol itu selalu ada di layar.
+  Foto dari jalur ini sengaja tidak diunduh ulang supaya tidak menjadi dua salinan.
 - **"Foto Saya" bukan arsip jangka panjang.** Isinya ada di penyimpanan browser
   perangkat itu. Membersihkan data situs akan menghapusnya, dan iOS membuang
   penyimpanan situs yang tidak dibuka berminggu-minggu. Salinan yang awet ada di
