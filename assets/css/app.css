@@ -1,0 +1,362 @@
+/* Palet diambil dari undangan digital (Pink Floral Watercolor) supaya booth ini
+   terasa satu rangkaian dengan undangannya.
+
+   SENGAJA tanpa webfont: font yang gagal termuat di venue dengan jaringan padat
+   akan mengubah tata letak secara senyap, dan bisa membuat watermark di kanvas
+   berbeda antara jepretan pertama dan berikutnya. Tumpukan font sistem diterima
+   sebagai harga dari kepastian. */
+
+:root {
+  --blush: #f8e1e7;
+  --blush-2: #fbeef1;
+  --rose-soft: #e8b4bc;
+  --rose-mid: #d89aa3;
+  --rose-deep: #c97b84;
+  --rose-dark: #a75a66;
+  --cream: #faf3f0;
+  --cream-2: #f4e8e2;
+  --sage: #b8c4a8;
+  --sage-deep: #8b9a7a;
+  --brown: #6b4f4f;
+  --brown-deep: #4a3838;
+  --gold: #c9a66b;
+
+  --bg: var(--cream);
+  --kartu: #fff;
+  --teks: var(--brown-deep);
+  --redup: #8a7070;
+  --garis: #ecdcd8;
+
+  --aman: #166534;
+  --tunda: #a16207;
+  --gagal: #991b1b;
+
+  --bayang: 0 8px 28px rgba(167, 90, 102, 0.1);
+  --radius: 16px;
+  --display: Georgia, "Times New Roman", serif;
+  --badan: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--teks);
+  font: 16px/1.55 var(--badan);
+  -webkit-text-size-adjust: 100%;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+/* ----------------------------------------------------------------- rangka */
+
+.bar-atas {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(250, 243, 240, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--garis);
+}
+
+.merek {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--rose-dark);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.bar-info { color: var(--redup); text-decoration: none; font-size: 14px; }
+
+.view { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+.tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #fff;
+  border-top: 1px solid var(--garis);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab {
+  padding: 14px 4px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--redup);
+  font-size: 13px;
+}
+
+.tab.aktif { color: var(--rose-dark); font-weight: 600; }
+
+/* ------------------------------------------------------------------ kartu */
+
+.kartu {
+  background: var(--kartu);
+  border-radius: var(--radius);
+  box-shadow: var(--bayang);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.kartu.tengah { text-align: center; }
+
+h1 { font-family: var(--display); font-size: 24px; margin: 8px 0 6px; font-weight: 600; }
+h2 { font-family: var(--display); font-size: 19px; margin: 0 0 8px; font-weight: 600; }
+
+.mempelai { font-family: var(--display); font-size: 22px; color: var(--rose-dark); margin: 0; }
+.mempelai.kecil { font-size: 18px; }
+.tanggal { letter-spacing: 0.18em; font-size: 12px; color: var(--gold); margin: 2px 0 10px; }
+
+.redup { color: var(--redup); }
+.kecil { font-size: 13px; }
+.tengah { text-align: center; }
+
+/* ----------------------------------------------------------------- isian */
+
+.label { display: block; text-align: left; font-size: 13px; color: var(--redup); margin: 14px 0 6px; }
+
+.isian {
+  width: 100%;
+  padding: 14px;
+  font-size: 17px; /* 17px+ mencegah iOS memperbesar halaman saat input difokus */
+  font-family: inherit;
+  color: var(--teks);
+  background: var(--blush-2);
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+}
+
+.isian:focus { outline: 2px solid var(--rose-soft); outline-offset: 1px; }
+
+/* --------------------------------------------------------------- tombol */
+
+.tombol {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 15px 18px;
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 48px; /* target sentuh nyaman untuk tamu yang berdiri & ramai */
+}
+
+.tombol.utama { background: var(--rose-deep); color: #fff; }
+.tombol.utama:active { background: var(--rose-dark); }
+.tombol.halus { background: var(--blush); color: var(--rose-dark); }
+.tombol.teks { background: none; color: var(--redup); font-weight: 400; }
+.tombol.bahaya { background: #fff; color: var(--gagal); border-color: #f3c8c8; }
+.tombol[disabled] { opacity: 0.55; }
+
+.tombol.mini {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 36px;
+  background: var(--blush);
+  color: var(--rose-dark);
+}
+
+.baris-tombol { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.baris-tombol .tombol { width: auto; flex: 1 1 46%; margin-top: 0; }
+
+/* ---------------------------------------------------------- panel jepret */
+
+.bidik {
+  position: relative;
+  background: #1b1416;
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  box-shadow: var(--bayang);
+}
+
+.bidik video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bidik-pesan {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.6;
+  background: linear-gradient(160deg, #3a2a2e, #1b1416);
+}
+
+.bidik-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 10px;
+  margin: 0;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.aksi-jepret { display: flex; justify-content: center; margin: 18px 0 6px; }
+
+.shutter {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 4px solid var(--rose-soft);
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.shutter span {
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: var(--rose-deep);
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+.shutter:active span { background: var(--rose-dark); }
+
+.aksi-samping { display: flex; gap: 8px; }
+.aksi-samping .tombol { margin-top: 0; }
+
+/* ----------------------------------------------------------- panel hasil */
+
+.panel-hasil { text-align: center; }
+
+.hasil-gambar {
+  width: 100%;
+  border-radius: var(--radius);
+  box-shadow: var(--bayang);
+  /* Dibiarkan bisa ditahan-lama: di iOS inilah satu-satunya cara yang selalu
+     ada untuk menyimpan ke app Foto. Jangan pernah pasang user-select:none
+     atau pointer-events:none di sini. */
+  -webkit-touch-callout: default;
+}
+
+.petunjuk { font-size: 14px; color: var(--brown); margin: 8px 0 0; }
+
+/* ------------------------------------------------------------ foto saya */
+
+.kepala-saya { margin-bottom: 12px; }
+
+.grid-foto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.kartu-foto {
+  margin: 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: var(--bayang);
+  overflow: hidden;
+  padding-bottom: 8px;
+}
+
+.kartu-foto img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+  background: var(--cream-2);
+}
+
+.tanpa-thumb {
+  aspect-ratio: 4 / 5;
+  display: grid;
+  place-items: center;
+  color: var(--redup);
+  background: var(--cream-2);
+  font-size: 13px;
+}
+
+.kartu-foto figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px 4px;
+}
+
+.badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+.badge.aman { background: #dcfce7; color: var(--aman); }
+.badge.tunda { background: #fef3c7; color: var(--tunda); }
+.badge.kirim { background: #e0f2fe; color: #075985; }
+.badge.gagal { background: #fee2e2; color: var(--gagal); }
+
+.aksi-kartu { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px; }
+.galat-pesan { padding: 6px 10px 0; margin: 0; word-break: break-word; }
+
+/* ------------------------------------------------------------- diagnosa */
+
+.diag { width: 100%; border-collapse: collapse; font-size: 13px; }
+.diag th { text-align: left; font-weight: 500; color: var(--redup); padding: 6px 8px 6px 0; vertical-align: top; }
+.diag td { padding: 6px 0; word-break: break-word; }
+.diag tr + tr { border-top: 1px solid var(--garis); }
+
+/* --------------------------------------------------- chip antrean & notif */
+
+.chip-antrean {
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  z-index: 7;
+  background: var(--brown-deep);
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  box-shadow: var(--bayang);
+}
+
+.notif {
+  position: fixed;
+  left: 12px; right: 12px;
+  top: calc(64px + env(safe-area-inset-top));
+  z-index: 9;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--brown-deep);
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.notif.tampil { opacity: 1; transform: translateY(0); }
+.notif.sukses { background: var(--aman); }
+.notif.galat { background: var(--gagal); }
+
+@media (prefers-reduced-motion: reduce) {
+  .notif { transition: none; }
+}

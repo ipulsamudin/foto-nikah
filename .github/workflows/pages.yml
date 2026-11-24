@@ -1,0 +1,58 @@
+name: Deploy ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Biarkan deploy yang sedang berjalan selesai, jangan dibatalkan di tengah.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  uji:
+    name: Uji
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Self-test fungsi murni (tanpa dependensi)
+        run: node tools/selftest.mjs
+
+      - name: Periksa import, aset precache, dan rujukan HTML
+        run: node tools/cek-impor.mjs
+
+      - name: Uji asap di browser headless (kamera palsu)
+        # Runner GitHub sudah punya Chrome; bila tidak ada, skripnya melewati
+        # diri sendiri dan tidak menggagalkan build.
+        run: node tools/smoke.mjs
+
+  # Sengaja TIDAK memanggil tools/cek-endpoint.mjs di sini: CI tidak punya token,
+  # dan menjalankannya pada setiap push berarti menembak endpoint produksi (serta
+  # menumpuk berkas uji di Drive mempelai). Jalankan manual sebelum hari-H.
+
+  deploy:
+    name: Deploy
+    needs: uji
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      # Tidak ada proses build: seluruh isi repo adalah situsnya.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deploy
+        uses: actions/deploy-pages@v4

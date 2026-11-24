@@ -1,0 +1,9 @@
+{
+  "catatan": "SATU-SATUNYA sumber URL backend. Dibaca oleh halaman dan oleh tools/cek-endpoint.mjs, supaya halaman dan uji tidak pernah menunjuk tempat berbeda. Isi dasar dengan null bila backend belum ada: booth tetap bisa menjepret dan menyimpan ke galeri HP, pengiriman saja yang ditahan.",
+  "pilihan_dasar": {
+    "apps_script": "https://script.google.com/macros/s/AKfycb.../exec",
+    "stub_lokal": "http://localhost:8765/__unggah"
+  },
+  "dasar": "https://script.google.com/macros/s/AKfycbzXw9K1m84lNMQXkxjCJZbuUsytiF2gU0pwLlz8gkH7E3qf36MHgse2XOczQCqs2uFA/exec",
+  "token": "xTciJx5LZAOgqPvq-lcD3I-n"
+}

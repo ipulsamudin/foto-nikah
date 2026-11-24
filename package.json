@@ -1,0 +1,16 @@
+{
+  "name": "foto-nikah",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Photo booth QR untuk pernikahan — foto masuk Google Drive mempelai dan galeri HP tamu. PWA tanpa build step.",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node tools/selftest.mjs && node tools/cek-impor.mjs",
+    "smoke": "node tools/smoke.mjs",
+    "test:all": "npm test && npm run smoke",
+    "cek": "node tools/cek-endpoint.mjs",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "license": "MIT"
+}

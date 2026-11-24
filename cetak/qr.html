@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kartu QR Foto Nikah — siap cetak</title>
+  <link rel="stylesheet" href="./qr.css">
+  <script src="../config.js"></script>
+</head>
+<body>
+  <div class="alat no-print">
+    <button id="cetak" type="button">Cetak</button>
+    <label>Kartu per lembar
+      <select id="jumlah">
+        <option value="2">2 (besar, untuk standee meja)</option>
+        <option value="4">4 (sedang)</option>
+        <option value="8">8 (kecil, untuk tiap kursi)</option>
+      </select>
+    </label>
+    <label>Label sesi
+      <input id="sesi" type="text" placeholder="akad / resepsi / meja-01" maxlength="24">
+    </label>
+    <p class="catatan">
+      Sesi ikut masuk ke tautan QR, jadi foto dari standee berbeda bisa dipilah di
+      Google Sheet. Cetak di kertas tebal, lalu <b>uji scan dari jarak 1,5 meter dengan
+      tiga HP berbeda</b> sebelum memesan banyak.
+    </p>
+  </div>
+
+  <main id="lembar"></main>
+
+  <script type="module" src="./qr.js"></script>
+</body>
+</html>

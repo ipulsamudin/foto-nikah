@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Foto Nikah">
+  <!-- Geometri ini harus tetap sejalan dengan tools/make-icons.mjs. -->
+  <rect width="512" height="512" rx="96" fill="#C97B84"/>
+  <rect x="190" y="132" width="132" height="48" rx="20" fill="#FAF3F0"/>
+  <rect x="88" y="170" width="336" height="230" rx="44" fill="#FAF3F0"/>
+  <circle cx="256" cy="286" r="88" fill="#A75A66"/>
+  <circle cx="256" cy="286" r="62" fill="#FFFFFF"/>
+  <path d="M256 310c-18-13-30-22-30-35a16 16 0 0 1 30-8 16 16 0 0 1 30 8c0 13-12 22-30 35z" fill="#C97B84"/>
+  <circle cx="362" cy="214" r="18" fill="#C9A66B"/>
+</svg>

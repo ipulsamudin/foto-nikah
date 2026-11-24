@@ -1,0 +1,24 @@
+{
+  "name": "Foto Nikah — Syaiful & Sarah",
+  "short_name": "Foto Nikah",
+  "description": "Ambil foto di pesta: tersimpan ke galeri HP Anda dan terkirim ke Google Drive mempelai, bahkan saat sinyal jelek.",
+  "lang": "id",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF3F0",
+  "theme_color": "#C97B84",
+  "categories": ["photo", "social", "utilities"],
+  "icons": [
+    { "src": "./assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ambil foto", "short_name": "Foto", "url": "./#/" },
+    { "name": "Foto saya", "short_name": "Saya", "url": "./#/saya" }
+  ]
+}

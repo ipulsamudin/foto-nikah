@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Foto Nikah — Syaiful &amp; Sarah</title>
+  <meta name="description" content="Ambil foto di pesta, langsung tersimpan ke Google Drive mempelai dan ke galeri HP Anda.">
+  <meta name="theme-color" content="#C97B84">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="stylesheet" href="./assets/css/app.css">
+  <!-- config.js bukan modul: ia hanya mengisi window.FOTO_NIKAH, dan harus
+       sudah ada sebelum modul mana pun membacanya. -->
+  <script src="./config.js"></script>
+</head>
+<body>
+  <header class="bar-atas">
+    <a class="merek" href="#/">Foto Nikah</a>
+    <a class="bar-info" href="#/info" aria-label="Info dan bantuan">Info</a>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <div id="antrean-chip" class="chip-antrean" hidden></div>
+  <div id="notif" class="notif" role="status" aria-live="polite"></div>
+
+  <nav class="tabbar">
+    <a class="tab" href="#/">Foto</a>
+    <a class="tab" href="#/saya">Foto Saya</a>
+    <a class="tab" href="#/info">Info</a>
+  </nav>
+
+  <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>

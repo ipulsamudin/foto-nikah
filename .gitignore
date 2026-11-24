@@ -1,0 +1,17 @@
+# sampah editor & OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# berkas uji sementara yang disalin ke akar oleh tools/smoke.mjs
+__smoke-*.html
+
+# foto hasil uji lokal
+uji-*.jpg
+
+# Catatan pemasangan: berisi alamat email akun dan ID folder/Sheet.
+# Repo ini PUBLIK, jadi berkas ini sengaja tidak pernah ikut ter-commit —
+# alamat email di repo publik adalah umpan spam, dan ID folder tidak perlu
+# diumumkan walau bukan rahasia.
+*.local.md
+*.local.gs
