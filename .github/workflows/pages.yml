@@ -40,13 +40,15 @@ jobs:
   # dan menjalankannya pada setiap push berarti menembak endpoint produksi (serta
   # menumpuk berkas uji di Drive mempelai). Jalankan manual sebelum hari-H.
 
-  deploy:
-    name: Deploy
+  # Unggah artifact dan deploy SENGAJA dipisah menjadi dua job, mengikuti template
+  # resmi GitHub Pages. Kalau keduanya disatukan, menekan "re-run failed jobs"
+  # akan mengunggah artifact bernama sama untuk kedua kalinya, dan deploy-pages
+  # menolak dengan "Multiple artifacts named github-pages". Dipisah begini, job
+  # deploy bisa diulang sendirian tanpa menyentuh artifact-nya.
+  bangun:
+    name: Bangun artifact
     needs: uji
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
@@ -54,5 +56,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+
+  deploy:
+    name: Deploy
+    needs: bangun
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@v4
