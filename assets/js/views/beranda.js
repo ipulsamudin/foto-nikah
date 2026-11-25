@@ -16,7 +16,7 @@ import { gambarBingkai } from '../bingkai.js';
 import * as antrean from '../antrean.js';
 import { dorong } from '../unggah.js';
 import { simpanKeGaleri, unduhOtomatis, bisaBagikanBerkas, iniIos } from '../simpan-galeri.js';
-import { mulaiPantauOrientasi, mintaIzinSensor } from '../orientasi.js';
+import { mulaiPantauOrientasi, mintaIzinSensor, bacaanOrientasi } from '../orientasi.js';
 
 const KONFIG = () => globalThis.FOTO_NIKAH || {};
 
@@ -25,14 +25,18 @@ let pemilih = null;
 let fotoTerakhir = null; // { blob, nama, kunci }
 
 /**
- * Berapa derajat kanvas perlu diputar supaya foto keluar tegak.
+ * Berapa derajat kanvas perlu diputar supaya BERKAS keluar tegak.
  *
  * Tetap 0 bila rotasi layar HP mengikuti posisi fisiknya (auto-rotate menyala),
  * dan menjadi 90/270 ketika rotasi layar dikunci sementara HP dimiringkan —
  * keadaan yang membuat foto keluar rebah sebelum ini.
+ *
+ * Nilai ini HANYA dipakai saat menjepret. Viewfinder tidak pernah ikut diputar;
+ * alasannya ada di pasangRasioBidik() dan orientasi.js.
  */
 let rotasiFoto = 0;
 let lepasPantauOrientasi = null;
+let timerDiag = null;
 
 export const judulHalaman = 'Ambil Foto';
 
@@ -41,10 +45,12 @@ export async function bongkar() {
   if (taman) taman.bersihkan();
   if (pemilih) pemilih.lepas();
   if (lepasPantauOrientasi) lepasPantauOrientasi();
+  if (timerDiag) clearInterval(timerDiag);
   taman = null;
   pemilih = null;
   fotoTerakhir = null;
   lepasPantauOrientasi = null;
+  timerDiag = null;
   rotasiFoto = 0;
 }
 
@@ -117,6 +123,7 @@ function gambarPanelJepret(induk, acara) {
       <div id="bidik-pesan" class="bidik-pesan" hidden></div>
       <p class="bidik-cap">${esc(acara.mempelai || '')} &middot; ${esc(acara.tanggalSingkat || '')}</p>
     </div>
+    <p id="bidik-diag" class="bidik-diag" hidden></p>
     <div class="aksi-jepret">
       <!-- Tombol jepret sengaja tersembunyi sampai kamera benar-benar punya
            gambar. Kalau ditampilkan lebih awal, tamu menekannya, tidak terjadi
@@ -167,9 +174,16 @@ async function nyalakanKamera() {
 /**
  * Samakan bentuk kotak viewfinder dengan bentuk aliran kamera.
  *
- * Inilah janji "yang terlihat = yang tersimpan": dariVideo() menyimpan seluruh
- * frame kamera tanpa crop, jadi satu-satunya cara membuat pratinjau jujur adalah
- * membuat kotaknya berbentuk sama.
+ * Kotak = bentuk aliran = apa yang dilihat mata. Pratinjau TIDAK pernah diputar,
+ * apa pun kata sensor: kamera menempel kaku pada layar, jadi frame mentah yang
+ * ditampilkan apa adanya selalu tegak di mata tamu — layarnya ikut miring
+ * bersama kameranya. Versi sebelumnya memutar kotak dan videonya mengikuti
+ * `rotasiFoto`, dan hasilnya justru kotak menyusut jadi pita sempit dengan isi
+ * terbalik begitu HP dimiringkan sementara rotasi layar dikunci.
+ *
+ * Berkas yang tersimpan boleh berbeda orientasi dari kotak ini — bingkainya
+ * sama persis, hanya sisinya tertukar supaya tegak saat dibuka nanti. Itu
+ * urusan `rotasiFoto` di `jepretSekarang()`, bukan urusan pratinjau.
  *
  * Dipasang juga dari event `resize` milik <video>, bukan hanya sekali saat
  * mulai. Memutar HP saat kamera menyala mengubah dimensi aliran, dan tanpa
@@ -183,33 +197,66 @@ function pasangRasioBidik(video) {
   const terapkan = () => {
     const { lebar, tinggi } = kamera.ukuranAliran(video);
     if (!lebar || !tinggi) return;
-
-    // Kotak menunjukkan bentuk AKHIR foto, bukan bentuk mentah aliran: kalau
-    // kanvas nanti diputar 90°, sisi-sisinya tertukar. Tanpa ini, tamu kembali
-    // melihat sesuatu yang berbeda dari yang tersimpan — hanya dengan arah
-    // sebaliknya dari cacat sebelumnya.
-    const tukar = rotasiFoto === 90 || rotasiFoto === 270;
-    kotak.style.setProperty('--rasio-bidik', tukar ? `${tinggi} / ${lebar}` : `${lebar} / ${tinggi}`);
-
-    // Pratinjaunya ikut diputar supaya tamu melihat gambar tegak, sama seperti
-    // yang akan tersimpan.
-    kotak.classList.toggle('putar-90', rotasiFoto === 90);
-    kotak.classList.toggle('putar-270', rotasiFoto === 270);
-    kotak.classList.toggle('putar-180', rotasiFoto === 180);
+    kotak.style.setProperty('--rasio-bidik', `${lebar} / ${tinggi}`);
   };
 
   terapkan();
   video.addEventListener('resize', terapkan);
 
+  if (diagAktif()) mulaiDiag(video);
+
   if (KONFIG().putarOtomatis === false) return;
 
   // Pantau posisi fisik HP. Saat rotasi layar dikunci, inilah satu-satunya
-  // sumber yang tahu bahwa HP sudah dimiringkan.
+  // sumber yang tahu bahwa HP sudah dimiringkan. Yang berubah hanya nilai untuk
+  // jepretan berikutnya; viewfinder sengaja tidak disentuh, sehingga pembacaan
+  // sensor yang meleset (HP ditaruh datar di meja) tidak lagi membuat pratinjau
+  // melompat-lompat di depan tamu.
   if (lepasPantauOrientasi) lepasPantauOrientasi();
   lepasPantauOrientasi = mulaiPantauOrientasi((derajat) => {
     rotasiFoto = derajat;
-    terapkan();
   });
+}
+
+/* ------------------------------------------------------------- diagnosa */
+
+/** `?diag=1` — hanya untuk penyelenggara saat menguji HP, tidak pernah tamu. */
+function diagAktif() {
+  const p = new URLSearchParams(location.search);
+  const v = p.get('diag');
+  return v !== null && v !== '0';
+}
+
+/**
+ * Baris kecil berisi pembacaan sensor mentah.
+ *
+ * Rotasi adalah satu-satunya bagian booth yang tidak bisa dibuktikan dari meja
+ * kerja: arahnya hanya terlihat di HP sungguhan, dan salah tebak berarti semua
+ * foto acara miring. Baris ini membuat jawabannya terbaca langsung di layar,
+ * tanpa kabel USB dan tanpa menebak.
+ *
+ * Diperbarui lewat timer, bukan event: `mulaiPantauOrientasi` sengaja hanya
+ * memanggil balik saat NILAI AKHIRNYA berubah, sedangkan yang ingin dilihat di
+ * sini justru beta/gamma yang bergerak terus. Timer hanya hidup bila flag-nya
+ * dipasang, jadi tamu tidak membayar apa pun untuknya.
+ */
+function mulaiDiag(video) {
+  const baris = el('#bidik-diag');
+  if (!baris) return;
+  baris.hidden = false;
+
+  const bulat = (n) => (Number.isFinite(n) ? Math.round(n) : '-');
+  const tulis = () => {
+    const o = bacaanOrientasi();
+    const { lebar, tinggi } = kamera.ukuranAliran(video);
+    baris.textContent =
+      `gamma ${bulat(o.gamma)} · beta ${bulat(o.beta)} · fisik ${o.fisik}° · ` +
+      `layar ${o.layar}° · aliran ${lebar}x${tinggi} · putar ${rotasiFoto}°`;
+  };
+
+  tulis();
+  if (timerDiag) clearInterval(timerDiag);
+  timerDiag = setInterval(tulis, 400);
 }
 
 function tampilPesanBidik(html) {

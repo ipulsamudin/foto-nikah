@@ -207,8 +207,8 @@ sendiri di browser sungguhan — itu yang membuktikan PNG-nya tidak tercermin.
 ## Pengembangan dan pengujian
 
 ```bash
-npm test        # selftest.mjs (119 pemeriksaan) + cek-impor.mjs
-npm run smoke   # 38 pemeriksaan di Chrome/Edge headless, kamera palsu
+npm test        # selftest.mjs (160 pemeriksaan) + cek-impor.mjs
+npm run smoke   # 50 pemeriksaan di Chrome/Edge headless, kamera palsu
 npm run cek     # cek-endpoint.mjs terhadap backend yang ter-deploy
 npm run icons   # regenerasi ikon PWA dari geometri di tools/make-icons.mjs
 ```
@@ -227,8 +227,17 @@ terkirim. Yang perlu dibuktikan justru yang sesudah itu.
 
 **Yang tidak bisa diklaim oleh alat apa pun di sini** — dan karena itu ada
 [docs/uji-perangkat.md](docs/uji-perangkat.md): perilaku `navigator.share` di
-iOS, apakah Safari menerapkan orientasi EXIF sendiri, dan CORS Apps Script yang
-sebenarnya (`fetch` di Node tidak menegakkan CORS).
+iOS, apakah Safari menerapkan orientasi EXIF sendiri, CORS Apps Script yang
+sebenarnya (`fetch` di Node tidak menegakkan CORS), dan arah sensor gerak di HP
+sungguhan.
+
+Untuk yang terakhir, buka booth dengan **`?diag=1`**: muncul satu baris kecil di
+bawah viewfinder berisi gamma, beta, sudut fisik, sudut layar, ukuran aliran
+kamera, dan derajat putar yang akan dipakai saat menjepret. Baris itu hanya
+muncul bila flag-nya dipasang, jadi aman ditinggal di produksi. Perlu diingat
+satu aturan yang mudah dilanggar ulang: **pratinjau tidak pernah diputar**.
+Kamera menempel kaku pada layar, jadi frame mentah selalu tegak di mata tamu;
+yang diputar hanya berkas yang disimpan, supaya tegak saat dibuka nanti.
 
 ---
 
@@ -248,6 +257,7 @@ foto-nikah/
 │     ├─ berkas-kamera.js   jalur <input capture> dan galeri
 │     ├─ gambar.js          crop/skala/tangga mutu/thumbnail/base64
 │     ├─ exif.js            pembacaan orientasi (murni, teruji)
+│     ├─ orientasi.js       posisi FISIK HP dari sensor; memutar BERKAS, bukan pratinjau
 │     ├─ bingkai.js         watermark Canvas 2D
 │     ├─ antrean.js         IndexedDB + mesin status
 │     ├─ unggah.js          pengirim: backoff, pemicu online/visible

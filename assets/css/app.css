@@ -210,28 +210,11 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0 0 8px; font-weight:
   display: block;
 }
 
-/* Pratinjau diputar saat rotasi layar HP dikunci sementara HP dimiringkan.
-   `transform: rotate()` tidak mengubah ruang tata letak, jadi video yang diputar
-   harus diukur dengan sisi tertukar — itulah gunanya satuan cqh/cqw terhadap
-   kotak ini. Tanpa pertukaran itu, video yang diputar hanya menutupi sebagian
-   kotak dan menyisakan pita hitam di kiri-kanan. */
-.bidik {
-  container-type: size;
-}
-
-.bidik.putar-90 video,
-.bidik.putar-270 video {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100cqh;
-  height: 100cqw;
-  transform-origin: center;
-}
-
-.bidik.putar-90 video { transform: translate(-50%, -50%) rotate(90deg); }
-.bidik.putar-270 video { transform: translate(-50%, -50%) rotate(270deg); }
-.bidik.putar-180 video { transform: rotate(180deg); }
+/* Di sini pernah ada aturan yang memutar <video> mengikuti sensor. Itu dihapus
+   dan jangan dikembalikan: kamera menempel kaku pada layar, jadi frame mentah
+   yang ditampilkan apa adanya selalu tegak di mata tamu. Memutarnya membuat
+   kotak menyusut jadi pita sempit dengan isi terbalik. Yang diputar hanya
+   berkas yang disimpan — lihat orientasi.js. */
 
 .bidik-pesan {
   position: absolute;
@@ -255,6 +238,17 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0 0 8px; font-weight:
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   pointer-events: none;
+}
+
+/* Hanya muncul dengan ?diag=1 — alat penyelenggara, bukan untuk tamu. */
+.bidik-diag {
+  margin: 6px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--brown);
+  opacity: 0.75;
+  word-break: break-word;
 }
 
 .aksi-jepret { display: flex; justify-content: center; margin: 18px 0 6px; }

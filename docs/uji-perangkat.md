@@ -23,6 +23,14 @@ Tanggal uji: ______________  Penguji: ______________
 | A5 | Buka app Galeri | Fotonya ada | |
 | A6 | Tekan **Pakai kamera HP** → jepret | App kamera bawaan terbuka; **foto asli otomatis masuk galeri** | |
 | A7 | Cek Sheet indeks | Ada baris baru dengan nama yang benar | |
+| A8 | **Kunci rotasi layar** di portrait, lalu miringkan HP sambil melihat viewfinder | Kotak **tetap penuh** selebar layar dan tidak melompat; gambar tegak di mata | |
+| A9 | Jepret dari posisi A8, lalu buka hasilnya di galeri/Drive | Foto **tegak**, watermark tegak, tidak terputar dua kali | |
+| A10 | Ulangi A8 dengan auto-rotate **menyala** | Tata letak ikut berputar; viewfinder dan hasilnya tetap benar | |
+
+Kalau A9 meleset, buka booth dengan `?diag=1`: muncul baris berisi gamma, beta,
+sudut fisik, sudut layar, ukuran aliran, dan derajat putar yang dipakai. Itu
+yang dipakai untuk memutuskan, bukan tebakan. Baris itu hanya muncul bila
+flag-nya dipasang, jadi aman ditinggal di produksi.
 
 ## B. iPhone (Safari)
 

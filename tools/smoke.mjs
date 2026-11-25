@@ -288,7 +288,7 @@ try {
   );
   cek('hasil rotasi tetap JPEG', putar.jpeg === 'image/jpeg', JSON.stringify(putar));
 
-  /* ------------------------------------- 3b. WYSIWYG: kotak = aliran = hasil */
+  /* ------------------------------------- 3b. WYSIWYG: kotak = aliran = mata */
 
   // Invarian yang hilang selama ini, dan yang melahirkan cacat "foto selalu
   // portrait": uji lama membandingkan hasil jepretan dengan prediksi skala, tapi
@@ -299,12 +299,17 @@ try {
     const kam = await import('./assets/js/kamera.js');
     const video = document.querySelector('#bidik-video');
     const kotak = document.querySelector('.bidik').getBoundingClientRect();
+    const vid = video.getBoundingClientRect();
     const aliran = kam.ukuranAliran(video);
     return {
       rasioKotak: kotak.height > 0 ? kotak.width / kotak.height : 0,
       rasioAliran: aliran.rasio,
       lebarAliran: aliran.lebar,
-      tinggiAliran: aliran.tinggi
+      tinggiAliran: aliran.tinggi,
+      lebarKotak: kotak.width,
+      tinggiKotak: kotak.height,
+      lebarVideo: vid.width,
+      tinggiVideo: vid.height
     };
   `);
   const dekat = (a, b, toleransi = 0.02) => a > 0 && b > 0 && Math.abs(a - b) / b <= toleransi;
@@ -317,6 +322,92 @@ try {
     'hasil jepretan berbentuk sama dengan yang dilihat tamu',
     dekat(tangkap.lebar / tangkap.tinggi, rasio.rasioKotak),
     `hasil ${tangkap.lebar}x${tangkap.tinggi} vs kotak ${rasio.rasioKotak.toFixed(3)}`
+  );
+
+  // Rasio yang benar belum berarti kotaknya terisi. Versi yang memutar pratinjau
+  // lolos uji rasio di atas, tapi di HP sungguhan videonya hanya menutupi
+  // sebagian kotak dan tamu melihat pita sempit. Yang diukur di sini adalah
+  // janji yang sebenarnya: video memenuhi kotaknya, bukan sekadar sebangun.
+  cek(
+    'video memenuhi kotak viewfinder, bukan pita sempit',
+    dekat(rasio.lebarVideo, rasio.lebarKotak) && dekat(rasio.tinggiVideo, rasio.tinggiKotak),
+    `video ${rasio.lebarVideo}x${rasio.tinggiVideo} vs kotak ${rasio.lebarKotak}x${rasio.tinggiKotak}`
+  );
+
+  /* ------------------- 3c. sensor menyentuh BERKAS, tidak menyentuh pratinjau */
+
+  // Pembuktian langsung atas aturan yang melahirkan cacat "pratinjau terbalik":
+  // sensor boleh menentukan arah berkas, tapi tidak boleh menggerakkan apa pun
+  // yang dilihat tamu. Kamera menempel kaku pada layar, jadi frame mentah selalu
+  // tegak di mata; memutarnya justru merusak yang sudah benar.
+  //
+  // Uji rasio di 3b tidak bisa menangkap ini sendirian: tanpa pembacaan sensor
+  // palsu, rotasinya selamanya 0 di Chrome headless dan jalur yang rusak tidak
+  // pernah dijalankan.
+  const sensor = await cdp.nilai(`
+    const ori = await import('./assets/js/orientasi.js');
+    const video = document.querySelector('#bidik-video');
+    const kotak = document.querySelector('.bidik');
+
+    const ukur = () => {
+      const k = kotak.getBoundingClientRect();
+      const v = video.getBoundingClientRect();
+      return [k.width, k.height, v.width, v.height];
+    };
+    const miringkan = async (gamma) => {
+      const ev = typeof DeviceOrientationEvent === 'function'
+        ? new DeviceOrientationEvent('deviceorientation', { beta: 0, gamma })
+        : Object.assign(new Event('deviceorientation'), { beta: 0, gamma });
+      window.dispatchEvent(ev);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    };
+    const sama = (a, b) => a.every((n, i) => Math.abs(n - b[i]) < 1);
+
+    const sebelum = ukur();
+    // HP dimiringkan berlawanan jarum jam, rotasi layar terkunci di portrait.
+    await miringkan(-80);
+    const bacaMiring = ori.bacaanOrientasi();
+    const saatMiring = ukur();
+    const transform = getComputedStyle(video).transform;
+
+    // Kembalikan ke tegak supaya bagian uji berikutnya mulai dari keadaan bersih.
+    await miringkan(0);
+    const bacaTegak = ori.bacaanOrientasi();
+
+    return {
+      fisik: bacaMiring.fisik,
+      rotasi: bacaMiring.rotasi,
+      rotasiSetelahTegak: bacaTegak.rotasi,
+      transform,
+      pratinjauDiam: sama(sebelum, saatMiring),
+      sebelum,
+      saatMiring
+    };
+  `);
+  cek(
+    'sensor membaca HP miring dan meminta berkas diputar 270',
+    sensor.fisik === 90 && sensor.rotasi === 270,
+    JSON.stringify(sensor)
+  );
+  cek(
+    'pratinjau TIDAK bergerak saat sensor bilang HP miring',
+    sensor.pratinjauDiam === true,
+    JSON.stringify(sensor)
+  );
+  cek(
+    'video tidak pernah diputar lewat CSS',
+    sensor.transform === 'none' || sensor.transform === 'matrix(1, 0, 0, 1, 0, 0)',
+    String(sensor.transform)
+  );
+  cek(
+    'rotasi kembali 0 begitu HP ditegakkan lagi',
+    sensor.rotasiSetelahTegak === 0,
+    JSON.stringify(sensor)
+  );
+  cek(
+    'baris diagnosa TIDAK terlihat tanpa ?diag=1',
+    await cdp.nilai(`return document.querySelector('#bidik-diag').hidden === true;`),
+    'tamu tidak boleh melihat angka sensor'
   );
 
   /* ---------------------------------------------- 4. overlay benar-benar tergambar */
@@ -551,6 +642,33 @@ try {
     );
     cek('endpoint backend TIDAK ikut ter-cache', sw.adaBackend === false, JSON.stringify(sw));
   }
+
+  /* ------------------------------------------------ 9b. penunjuk diagnosa */
+
+  // Alat penyelenggara untuk memutuskan arah rotasi di HP sungguhan. Diuji
+  // karena fiturnya tidak berguna kalau baru ketahuan mati saat dibutuhkan —
+  // yaitu di venue, beberapa menit sebelum acara, dengan semua foto miring.
+  await cdp.kirim('Page.enable');
+  // `to=` tetap dibawa: tanpa nama, aplikasi berhenti di gerbang nama dan panel
+  // jepret (tempat baris diagnosa hidup) tidak pernah digambar.
+  await cdp.kirim('Page.navigate', {
+    url: `http://localhost:${PORT}/?to=Rani%20Agustina&diag=1`
+  });
+
+  const diag = await tungguSampai(
+    () =>
+      cdp.nilai(`
+    const b = document.querySelector('#bidik-diag');
+    if (!b || b.hidden || !b.textContent) return null;
+    return { teks: b.textContent };
+  `),
+    15000
+  );
+  cek(
+    'penunjuk ?diag=1 menampilkan pembacaan sensor dan ukuran aliran',
+    Boolean(diag) && /gamma/.test(diag.teks) && /aliran \d+x\d+/.test(diag.teks),
+    JSON.stringify(diag)
+  );
 
   /* ------------------------------------------- 10. halaman cetak: poster & PNG */
 

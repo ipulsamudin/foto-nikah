@@ -10,13 +10,21 @@
 // Satu-satunya sumber kebenaran untuk posisi fisik adalah sensor gerak, dan
 // seluruh keputusan rotasi memakai satu rumus:
 //
-//     rotasiTambahan = sudutFisik - sudutLayar
+//     rotasiTambahan = sudutLayar - sudutFisik
 //
 // Auto-rotate menyala  -> keduanya bergerak bersama -> 0, tidak ada yang diputar.
-// Auto-rotate terkunci -> layar diam di 0, fisik 90 -> kanvas diputar 90°.
+// Auto-rotate terkunci -> layar diam di 0, fisik 270 -> kanvas diputar 90°.
 //
 // Dengan begitu tidak perlu mendeteksi "apakah rotasi terkunci"; kedua keadaan
 // ditangani rumus yang sama.
+//
+// YANG DIPUTAR HANYA BERKAS, BUKAN PRATINJAU. Kamera menempel kaku pada layar:
+// apa pun posisi HP, frame mentah yang ditampilkan apa adanya SELALU benar di
+// mata tamu, karena layarnya ikut miring bersama kameranya. Memutar viewfinder
+// justru merusak yang sudah benar — persis cacat yang membuat pratinjau tampak
+// terbalik dan kotaknya menyusut jadi pita sempit saat HP dimiringkan. Sudut di
+// modul ini hanya menjawab satu pertanyaan: berapa derajat BERKAS harus diputar
+// supaya tegak ketika dibuka nanti di layar yang tegak.
 
 /**
  * Ambang kemiringan sebelum dianggap landscape.
@@ -71,14 +79,25 @@ export function normalkanSudut(sudut) {
 }
 
 /**
- * Berapa derajat kanvas perlu diputar supaya foto keluar tegak.
+ * Berapa derajat kanvas perlu diputar supaya BERKAS keluar tegak.
+ *
+ * Arahnya diturunkan dari satu kasus yang bisa dibayangkan tanpa alat: HP
+ * diputar SEARAH jarum jam 90° (sisi atas ke kanan) dengan rotasi layar
+ * terkunci portrait. Di frame mentah, kepala orang yang berdiri tegak menunjuk
+ * ke tepi KIRI gambar — jadi berkasnya harus diputar 90° searah jarum jam.
+ * Posisi itu dibaca `sudutDariSensor` sebagai 270, maka yang benar adalah
+ * `layar - fisik`, bukan sebaliknya. Sebelumnya terbalik, dan hasilnya meleset
+ * tepat 180°.
  *
  * MURNI. Dua kasus yang paling penting diuji eksplisit:
  *   auto-rotate menyala  : fisik 90, layar 90 -> 0
- *   auto-rotate terkunci : fisik 90, layar 0  -> 90
+ *   auto-rotate terkunci : fisik 270, layar 0 -> 90
+ *
+ * Perhatikan bahwa pembalikan tanda ini tidak bisa merusak kasus auto-rotate
+ * menyala: di sana kedua sudutnya sama, dan selisihnya nol ke arah mana pun.
  */
 export function rotasiTambahan(fisik, layar) {
-  return normalkanSudut(normalkanSudut(fisik) - normalkanSudut(layar));
+  return normalkanSudut(normalkanSudut(layar) - normalkanSudut(fisik));
 }
 
 /**
@@ -106,11 +125,24 @@ export function dukungSensor() {
 }
 
 /**
+ * Pembacaan mentah terakhir, untuk penunjuk diagnosa `?diag=1`.
+ *
+ * Disimpan di lingkup modul supaya baris diagnosa bisa membacanya kapan saja
+ * tanpa memasang pendengar kedua — satu-satunya cara menjawab "sensornya baca
+ * apa?" di HP tamu tanpa kabel dan tanpa menebak.
+ */
+let bacaan = { beta: null, gamma: null, fisik: 0, layar: 0, rotasi: 0 };
+
+export function bacaanOrientasi() {
+  return { ...bacaan, layar: sudutLayar() };
+}
+
+/**
  * Pantau rotasi yang perlu diterapkan, dan panggil `onUbah` hanya ketika
  * nilainya BERUBAH.
  *
  * Event deviceorientation datang puluhan kali per detik; tanpa penyaringan ini,
- * viewfinder akan digambar ulang terus-menerus dan HP kelas bawah ikut panas.
+ * pemanggil akan bekerja terus-menerus dan HP kelas bawah ikut panas.
  *
  * @returns {Function} pembongkar
  */
@@ -119,7 +151,9 @@ export function mulaiPantauOrientasi(onUbah) {
   let sudutFisikTerakhir = 0;
 
   const nilai = () => {
-    const r = rotasiTambahan(sudutFisikTerakhir, sudutLayar());
+    const layar = sudutLayar();
+    const r = rotasiTambahan(sudutFisikTerakhir, layar);
+    bacaan = { ...bacaan, fisik: sudutFisikTerakhir, layar, rotasi: r };
     if (r === terakhir) return;
     terakhir = r;
     onUbah(r);
@@ -127,6 +161,7 @@ export function mulaiPantauOrientasi(onUbah) {
 
   const dariSensor = (ev) => {
     sudutFisikTerakhir = sudutDariSensor(ev);
+    bacaan = { ...bacaan, beta: Number(ev?.beta), gamma: Number(ev?.gamma) };
     nilai();
   };
   const dariLayar = () => nilai();

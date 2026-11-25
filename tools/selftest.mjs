@@ -569,12 +569,37 @@ sama('sudut: tepat di ambang', sudutDariSensor({ beta: 0, gamma: -AMBANG_MIRING 
 sama('sudut: pembacaan rusak', sudutDariSensor({ beta: null, gamma: undefined }), 0);
 sama('sudut: tanpa argumen', sudutDariSensor(), 0);
 
-// Dua kasus yang menjadi alasan seluruh modul ini ada:
-sama('rotasi: auto-rotate MENYALA (fisik 90, layar 90) -> 0', rotasiTambahan(90, 90), 0);
-sama('rotasi: auto-rotate TERKUNCI (fisik 90, layar 0) -> 90', rotasiTambahan(90, 0), 90);
-sama('rotasi: terkunci miring kanan (fisik 270, layar 0) -> 270', rotasiTambahan(270, 0), 270);
+// Dua kasus yang menjadi alasan seluruh modul ini ada. Namanya sengaja memakai
+// kalimat fisik, bukan angka telanjang: arah putar pernah terbalik sekali, dan
+// uji yang hanya menyebut angka tidak membuat kesalahan itu terbaca.
+sama('rotasi: auto-rotate MENYALA, HP miring -> tidak ada yang diputar', rotasiTambahan(90, 90), 0);
+sama(
+  'rotasi: TERKUNCI, HP diputar SEARAH jarum jam (fisik 270, layar 0) -> berkas diputar 90',
+  rotasiTambahan(270, 0),
+  90
+);
+sama(
+  'rotasi: TERKUNCI, HP diputar BERLAWANAN jarum jam (fisik 90, layar 0) -> berkas diputar 270',
+  rotasiTambahan(90, 0),
+  270
+);
+sama('rotasi: TERKUNCI, HP terbalik (fisik 180, layar 0) -> berkas diputar 180', rotasiTambahan(180, 0), 180);
 sama('rotasi: HP tegak, layar tegak -> 0', rotasiTambahan(0, 0), 0);
-sama('rotasi: layar lebih maju dari fisik', rotasiTambahan(0, 90), 270);
+sama('rotasi: layar lebih maju dari fisik', rotasiTambahan(0, 90), 90);
+
+// Inilah yang mengunci ARAH-nya, bukan sekadar nilainya: memutar posisi fisik
+// HP sebanyak rotasi yang dihasilkan harus mendarat tepat di posisi layar —
+// definisi "foto keluar tegak". Rumus yang tandanya terbalik gagal di sini
+// untuk setiap pasangan yang tidak sama.
+for (const fisik of [0, 90, 180, 270]) {
+  for (const layar of [0, 90, 180, 270]) {
+    sama(
+      `rotasi: fisik ${fisik} + rotasinya mendarat di layar ${layar}`,
+      normalkanSudut(fisik + rotasiTambahan(fisik, layar)),
+      layar
+    );
+  }
+}
 
 sama('normalkanSudut: negatif', normalkanSudut(-90), 270);
 sama('normalkanSudut: lebih dari 360', normalkanSudut(450), 90);
