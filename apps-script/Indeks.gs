@@ -25,6 +25,38 @@ var KOLOM_INDEKS = [
 ];
 
 /**
+ * Ambil tab indeks, BUATKAN kalau belum ada.
+ *
+ * Ini menutup kegagalan paling berbahaya yang pernah terjadi di proyek ini:
+ * backend diarahkan ke Spreadsheet baru, inisialisasi() lupa dijalankan di sana,
+ * dan sejak itu setiap unggahan tetap menjawab ok:true — karena kegagalan indeks
+ * memang SENGAJA tidak menggagalkan foto tamu — sementara tidak satu pun baris
+ * tercatat. Kegagalan yang tidak terlihat adalah kegagalan yang baru ketahuan
+ * setelah acara selesai, saat tidak ada lagi yang bisa diperbaiki.
+ *
+ * Dipanggil dari dalam lock pada jalur tulis, jadi dua eksekusi tidak bisa
+ * membuat tab kembar. Pada jalur baca, kegagalan membuat tab bukan masalah:
+ * pemanggil cukup memperlakukan indeks sebagai kosong.
+ */
+function lembarIndeks(buatBilaTiada) {
+  var ss = SpreadsheetApp.openById(PENGATURAN.ID_SPREADSHEET);
+  var lembar = ss.getSheetByName(PENGATURAN.LEMBAR_INDEKS);
+  if (lembar || !buatBilaTiada) return lembar;
+
+  try {
+    lembar = ss.insertSheet(PENGATURAN.LEMBAR_INDEKS);
+    lembar.appendRow(KOLOM_INDEKS);
+    lembar.setFrozenRows(1);
+    lembar.getRange(1, 1, 1, KOLOM_INDEKS.length).setFontWeight('bold');
+    catat('INDEKS_DIBUAT_OTOMATIS', new Error(PENGATURAN.LEMBAR_INDEKS));
+  } catch (e) {
+    // Eksekusi lain mungkin mendahului kita membuat tab yang sama.
+    lembar = ss.getSheetByName(PENGATURAN.LEMBAR_INDEKS);
+  }
+  return lembar;
+}
+
+/**
  * Tambah satu baris indeks.
  *
  * getRange().setValues() DITOLAK untuk keperluan ini: ia butuh getLastRow()
@@ -50,9 +82,10 @@ function tambahBarisIndeks(baris) {
     return false;
   }
   try {
-    SpreadsheetApp.openById(PENGATURAN.ID_SPREADSHEET)
-      .getSheetByName(PENGATURAN.LEMBAR_INDEKS)
-      .appendRow(baris);
+    // Dibuat di sini bila belum ada — di dalam lock, jadi tidak mungkin kembar.
+    var lembar = lembarIndeks(true);
+    if (!lembar) throw new Error('Tab "' + PENGATURAN.LEMBAR_INDEKS + '" tidak bisa dibuat');
+    lembar.appendRow(baris);
     SpreadsheetApp.flush(); // paksa tulis sebelum lock dilepas
     return true;
   } catch (e) {
@@ -76,9 +109,10 @@ function tambahBarisIndeks(baris) {
  */
 function ambilTerbaru(n) {
   n = Math.min(Math.max(Number(n) || 24, 1), 100);
-  var lembar = SpreadsheetApp.openById(PENGATURAN.ID_SPREADSHEET).getSheetByName(
-    PENGATURAN.LEMBAR_INDEKS
-  );
+  // Jalur baca tidak membuat tab: indeks yang belum ada sama saja dengan indeks
+  // kosong, dan melempar TypeError di sini hanya menyamarkan penyebabnya.
+  var lembar = lembarIndeks(false);
+  if (!lembar) return [];
   var akhir = lembar.getLastRow();
   if (akhir < 2) return [];
   var mulai = Math.max(2, akhir - n + 1);

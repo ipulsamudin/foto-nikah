@@ -136,6 +136,7 @@ async function nyalakanKamera() {
     await kamera.mulai(video);
     pesan.hidden = true;
     video.hidden = false;
+    pasangRasioBidik(video);
     // mulai() baru selesai setelah video punya ukuran, jadi di titik ini
     // viewfinder benar-benar hidup dan tombol jepret layak ditampilkan.
     el('#tombol-jepret').hidden = false;
@@ -146,6 +147,32 @@ async function nyalakanKamera() {
       `${esc(e?.message || 'Kamera tidak bisa dibuka.')}<br><br>Gunakan tombol <b>Pakai kamera HP</b> di bawah — hasilnya sama, dan di Android fotonya otomatis tersimpan ke galeri Anda.`
     );
   }
+}
+
+/**
+ * Samakan bentuk kotak viewfinder dengan bentuk aliran kamera.
+ *
+ * Inilah janji "yang terlihat = yang tersimpan": dariVideo() menyimpan seluruh
+ * frame kamera tanpa crop, jadi satu-satunya cara membuat pratinjau jujur adalah
+ * membuat kotaknya berbentuk sama.
+ *
+ * Dipasang juga dari event `resize` milik <video>, bukan hanya sekali saat
+ * mulai. Memutar HP saat kamera menyala mengubah dimensi aliran, dan tanpa
+ * pendengar ini ketidakcocokan yang sedang kita perbaiki akan kembali persis
+ * pada saat tamu memiringkan HP untuk foto rombongan.
+ */
+function pasangRasioBidik(video) {
+  const kotak = el('.bidik');
+  if (!kotak || !video) return;
+
+  const terapkan = () => {
+    const { lebar, tinggi } = kamera.ukuranAliran(video);
+    if (!lebar || !tinggi) return;
+    kotak.style.setProperty('--rasio-bidik', `${lebar} / ${tinggi}`);
+  };
+
+  terapkan();
+  video.addEventListener('resize', terapkan);
 }
 
 function tampilPesanBidik(html) {

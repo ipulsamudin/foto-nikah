@@ -23,7 +23,7 @@ var PENGATURAN = {
    * menjalankan kode terbaru — lihat apps-script/README.md bagian "jebakan
    * deployment", yang tanpa penanda ini mustahil didiagnosis saat acara.
    */
-  VERSI: '2026-12-06.2',
+  VERSI: '2026-12-06.4',
 
   /**
    * DUA ID DI BAWAH SENGAJA DIBIARKAN KOSONG DI REPO.

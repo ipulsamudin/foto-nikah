@@ -194,7 +194,12 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0 0 8px; font-weight:
   background: #1b1416;
   border-radius: var(--radius);
   overflow: hidden;
-  aspect-ratio: 3 / 4;
+  /* Rasio diisi dari dimensi aliran kamera yang sebenarnya oleh views/beranda.js.
+     Nilai bawaan portrait dipakai hanya sampai kamera siap, supaya kotaknya tidak
+     melompat. Sebelum ini rasionya dipatok 3/4 sementara foto yang disimpan
+     memakai seluruh frame kamera — tamu membingkai sesuatu yang berbeda dari
+     yang akhirnya tersimpan. */
+  aspect-ratio: var(--rasio-bidik, 3 / 4);
   box-shadow: var(--bayang);
 }
 

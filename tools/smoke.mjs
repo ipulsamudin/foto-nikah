@@ -258,6 +258,37 @@ try {
     JSON.stringify(tangkap)
   );
 
+  /* ------------------------------------- 3b. WYSIWYG: kotak = aliran = hasil */
+
+  // Invarian yang hilang selama ini, dan yang melahirkan cacat "foto selalu
+  // portrait": uji lama membandingkan hasil jepretan dengan prediksi skala, tapi
+  // tidak pernah membandingkannya dengan BENTUK KOTAK YANG DILIHAT TAMU. Selama
+  // kotaknya dipatok 3/4 sementara jepretan memakai seluruh frame kamera, tamu
+  // membingkai sesuatu yang berbeda dari yang tersimpan — dan semua tes hijau.
+  const rasio = await cdp.nilai(`
+    const kam = await import('./assets/js/kamera.js');
+    const video = document.querySelector('#bidik-video');
+    const kotak = document.querySelector('.bidik').getBoundingClientRect();
+    const aliran = kam.ukuranAliran(video);
+    return {
+      rasioKotak: kotak.height > 0 ? kotak.width / kotak.height : 0,
+      rasioAliran: aliran.rasio,
+      lebarAliran: aliran.lebar,
+      tinggiAliran: aliran.tinggi
+    };
+  `);
+  const dekat = (a, b, toleransi = 0.02) => a > 0 && b > 0 && Math.abs(a - b) / b <= toleransi;
+  cek(
+    'kotak viewfinder berbentuk sama dengan aliran kamera',
+    dekat(rasio.rasioKotak, rasio.rasioAliran),
+    JSON.stringify(rasio)
+  );
+  cek(
+    'hasil jepretan berbentuk sama dengan yang dilihat tamu',
+    dekat(tangkap.lebar / tangkap.tinggi, rasio.rasioKotak),
+    `hasil ${tangkap.lebar}x${tangkap.tinggi} vs kotak ${rasio.rasioKotak.toFixed(3)}`
+  );
+
   /* ---------------------------------------------- 4. overlay benar-benar tergambar */
 
   const overlay = await cdp.nilai(`
@@ -490,6 +521,129 @@ try {
     );
     cek('endpoint backend TIDAK ikut ter-cache', sw.adaBackend === false, JSON.stringify(sw));
   }
+
+  /* ------------------------------------------- 10. halaman cetak: poster & PNG */
+
+  // Dijalankan paling akhir karena ia MENINGGALKAN halaman aplikasi.
+  //
+  // Yang hanya bisa dibuktikan di sini, bukan di selftest: bahwa kanvas PNG
+  // benar-benar sepadan modul-per-modul dengan matriksnya sendiri. Pustaka vendor
+  // punya renderTo2dContext yang sumbunya tertukar, dan QR tercermin terbaca di
+  // sebagian pemindai tapi ditolak di sebagian lain — kegagalan yang muncul di HP
+  // tamu, bukan di laptop yang mencetaknya.
+  await cdp.kirim('Page.enable');
+  await cdp.kirim('Page.navigate', {
+    url:
+      `http://localhost:${PORT}/cetak/qr.html?n=poster&sesi=` +
+      encodeURIComponent('<img src=x onerror="document.title=\'XSS\'">')
+  });
+
+  const cetak = await tungguSampai(
+    () =>
+      cdp.nilai(`
+    const l = document.querySelector('#lembar');
+    if (!l || !l.dataset.jumlah || !l.querySelector('.qr svg')) return null;
+    return {
+      jumlah: l.dataset.jumlah,
+      kartu: l.querySelectorAll('.kartu').length,
+      judul: document.title,
+      teksSesi: (l.querySelector('.sesi') || {}).textContent || ''
+    };
+  `),
+    15000
+  );
+  if (!cetak) throw new Error('halaman cetak tidak selesai menggambar');
+
+  cek(
+    'mode poster menghasilkan tepat satu kartu',
+    cetak.kartu === 1 && cetak.jumlah === 'poster',
+    JSON.stringify(cetak)
+  );
+  cek(
+    'label sesi TIDAK dieksekusi sebagai HTML',
+    cetak.judul !== 'XSS' && cetak.teksSesi.includes('<img'),
+    JSON.stringify(cetak)
+  );
+
+  // Lembar A4 harus benar-benar muat A4. Dulu #lembar memakai min-height, jadi
+  // ia tumbuh mengikuti isi sampai 339mm (2 kartu) dan 358mm (4 kartu): kartu
+  // paling bawah terbelah ke halaman kedua, dan halaman itu ikut keluar dari
+  // printer setiap lembar. Yang diperiksa di sini dua-duanya, karena memperbaiki
+  // satu saja menukar bug dengan bug: lembarnya tidak boleh melebihi kotak A4,
+  // DAN isi kartu tidak boleh meluber dari jatahnya (kalau meluber, overflow
+  // hidden akan memotongnya diam-diam di garis potong).
+  for (const mode of ['2', '4', '8', 'poster']) {
+    await cdp.kirim('Page.navigate', {
+      url: `http://localhost:${PORT}/cetak/qr.html?n=${mode}`
+    });
+    const ukur = await tungguSampai(
+      () =>
+        cdp.nilai(`
+      const l = document.querySelector('#lembar');
+      if (!l || !l.querySelector('.qr svg')) return null;
+      const kartu = [...l.querySelectorAll('.kartu')];
+      return {
+        lembarLuber: l.scrollHeight - l.clientHeight,
+        kartuLuber: Math.max(...kartu.map((k) => k.scrollHeight - k.clientHeight)),
+        jumlah: kartu.length
+      };
+    `),
+      15000
+    );
+    if (!ukur) throw new Error('halaman cetak tidak selesai menggambar untuk n=' + mode);
+    // Toleransi 1 px untuk pembulatan subpiksel mm -> px.
+    cek(
+      `lembar n=${mode} muat satu halaman A4`,
+      ukur.lembarLuber <= 1,
+      `luber ${ukur.lembarLuber}px`
+    );
+    cek(
+      `isi kartu n=${mode} tidak meluber melewati garis potong`,
+      ukur.kartuLuber <= 1,
+      `luber ${ukur.kartuLuber}px`
+    );
+  }
+
+  const png = await cdp.nilai(`
+    const m = await import('./qr.js');
+    const teks = 'https://ipulsamudin.github.io/foto-nikah/?sesi=akad';
+    const q = m.matriksQr(teks);
+    const { kanvas, sisi, sel, modul } = m.kanvasQr(teks);
+    const d = kanvas.getContext('2d').getImageData(0, 0, sisi, sisi).data;
+    const merah = (x, y) => d[(y * sisi + x) * 4];
+    const alfa = (x, y) => d[(y * sisi + x) * 4 + 3];
+    let beda = 0;
+    const tengah = Math.floor(sel / 2);
+    for (let b = 0; b < modul; b++) {
+      for (let k = 0; k < modul; k++) {
+        const hitam = merah(sel * (4 + k) + tengah, sel * (4 + b) + tengah) < 128;
+        if (hitam !== q.isDark(b, k)) beda++;
+      }
+    }
+    return {
+      sisi, sel, modul, beda,
+      sisaBagi: sisi % (modul + 8),
+      sudut: merah(0, 0),
+      alfaSudut: alfa(0, 0),
+      alfaTengah: alfa(sisi >> 1, sisi >> 1)
+    };
+  `);
+
+  cek(
+    'PNG: sisi habis dibagi modul + quiet zone (modul = piksel bulat)',
+    png.sisaBagi === 0,
+    JSON.stringify(png)
+  );
+  cek(
+    'PNG: setiap modul cocok dengan matriks (sumbu tidak tertukar)',
+    png.beda === 0,
+    png.beda + ' modul berbeda'
+  );
+  cek(
+    'PNG: quiet zone putih dan OPAQUE',
+    png.sudut === 255 && png.alfaSudut === 255 && png.alfaTengah === 255,
+    JSON.stringify(png)
+  );
 
   ws.close();
 } catch (e) {

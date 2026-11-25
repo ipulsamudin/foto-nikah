@@ -9,6 +9,12 @@ __smoke-*.html
 # foto hasil uji lokal
 uji-*.jpg
 
+# Keluaran cetak: dihasilkan ulang kapan saja dari cetak/qr.html atau
+# tools/cetak-pdf.mjs, jadi tidak perlu ikut ke repo. Yang menentukan isinya
+# adalah config.js dan cetak/, bukan berkas hasilnya.
+qr-foto-nikah-*.png
+qr-a4-*.pdf
+
 # Catatan pemasangan: berisi alamat email akun dan ID folder/Sheet.
 # Repo ini PUBLIK, jadi berkas ini sengaja tidak pernah ikut ter-commit —
 # alamat email di repo publik adalah umpan spam, dan ID folder tidak perlu

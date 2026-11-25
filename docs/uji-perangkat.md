@@ -75,6 +75,11 @@ Tanggal uji: ______________  Penguji: ______________
 | F2 | Scan dari **1,5 m**, cahaya indoor hangat, 3 HP berbeda | Ter-scan < 2 detik | |
 | F3 | Baca teks alamat di kartu | Terbaca dan benar | |
 | F4 | Scan kartu `?sesi=akad` | Sheet kolom `sesi` berisi `akad` | |
+| F5 | Ctrl+P pada tiap pilihan (2, 4, 8, Poster) | Pratinjau **1 halaman** untuk semuanya; tidak ada kartu yang terbelah | |
+| F6 | Cetak Poster, tempel di dinding, scan dari **1,5 m dan 3 m** | Ter-scan < 2 detik di ketiga HP | |
+| F7 | **Unduh PNG** tanpa sesi lalu dengan `sesi=akad` | Dua berkas: `...-umum-2009px.png` dan `...-akad-2025px.png`. Ukuran yang berbeda itu benar — `?sesi=` menambah modul | |
+| F8 | Tempel PNG ke slide/undangan berlatar **gelap** | Latar QR tetap putih, tidak ada bagian yang menghitam | |
+| F9 | Kirim PNG via WhatsApp sebagai **Dokumen**, lalu sekali lagi sebagai **Foto**; scan keduanya dari galeri | Keduanya ter-scan dan membuka alamat yang benar | |
 
 ---
 

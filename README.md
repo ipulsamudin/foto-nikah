@@ -139,10 +139,49 @@ acara — tanpa mencetak ulang kartu.
 ## Cetak kartu QR
 
 Buka **[cetak/qr.html](cetak/qr.html)** (lewat http, bukan `file://`), pilih
-jumlah kartu per lembar dan label sesi, lalu tekan Cetak.
+bentuk keluaran dan label sesi, lalu tekan Cetak atau Unduh PNG.
 
+Tiga bentuk keluaran dari halaman yang sama:
+
+| Pilihan | Untuk apa | Ukuran QR |
+|---|---|---|
+| 2 / 4 / 8 kartu per lembar | kartu A4 untuk digunting — standee meja sampai tiap kursi | 45 / 36 / 32 mm |
+| **Poster** | satu QR besar memenuhi A4 — X-banner atau papan di pintu masuk | 170 mm |
+| **Unduh PNG** | QR-nya saja, sekitar 2000 px — percetakan, undangan digital, WhatsApp, Instagram | bebas |
+
+### Berkas A4 tanpa membuka browser
+
+```bash
+npm run cetak                      # poster, tanpa label sesi
+node tools/cetak-pdf.mjs 8 meja-01 # lembar 8 kartu, sesi "meja-01"
+node tools/cetak-pdf.mjs semua     # poster + 2 + 4 + 8 sekaligus
+```
+
+Menghasilkan `qr-a4-<pilihan>-<sesi>.pdf` di akar proyek (diabaikan git — berkas
+hasil, bukan sumber). Tool ini mencetak **halaman yang sama** lewat Chrome
+headless, bukan perender PDF kedua yang bisa menyimpang dari yang terlihat di
+layar, dan ia **gagal** kalau PDF-nya bukan tepat satu halaman 210 × 297 mm.
+
+Setiap lembar dijamin **satu halaman**: `#lembar` adalah kotak A4 dengan tinggi
+tetap dan `grid-auto-rows: 1fr`, bukan `min-height`. Sebelumnya lembar tumbuh
+mengikuti isi sampai 339 mm (2 kartu) dan 358 mm (4 kartu), jadi kartu paling
+bawah terbelah dan satu halaman tambahan ikut keluar dari printer tiap lembar.
+`tools/smoke.mjs` menjaga keduanya: lembar tidak melebihi A4, dan isi kartu tidak
+meluber melewati garis potong.
+
+- **Untuk banner besar, pilih Poster lalu Cetak → Simpan sebagai PDF**, jangan
+  PNG: QR di dalam PDF masih vektor, jadi percetakan bisa membesarkannya ke A1
+  atau A0 tanpa kehilangan ketajaman sama sekali.
+- PNG dinamai `qr-foto-nikah-<sesi>-<ukuran>px.png` (sesi kosong jadi `umum`).
+  Sesi ikut ke nama berkas karena dua standee yang diunduh berurutan akan menjadi
+  `qr.png` dan `qr (1).png`, dan sesudah itu tidak ada lagi cara membedakannya
+  tanpa memindai ulang. Ukurannya berubah mengikuti panjang alamat — itu normal:
+  menambahkan `?sesi=` mendorong QR dari versi 4 ke versi 5.
+- **Kirim PNG via WhatsApp sebagai Dokumen, bukan Foto**, supaya tidak
+  direkompresi.
 - QR dirender dari pustaka yang di-pin di `vendor/`, bukan dari layanan QR
   online: kartu ini mungkin dicetak dari laptop di venue tanpa internet.
+  Unduh PNG juga bekerja offline — kanvas tidak butuh jaringan.
 - Koreksi galat **Q**, quiet zone 4 modul — standee kertas kena jari, tumpahan,
   dan cahaya remang.
 - Label sesi (`akad`, `resepsi`, `meja-01`) ikut masuk ke tautan, jadi foto dari
@@ -153,22 +192,30 @@ jumlah kartu per lembar dan label sesi, lalu tekan Cetak.
   bermasalah.
 
 **Uji scan kartu yang sudah tercetak dari jarak 1,5 meter dengan tiga HP berbeda
-sebelum memesan banyak.**
+sebelum memesan banyak.** Untuk PNG, uji juga sesudah dikirim via WhatsApp —
+sekali sebagai Dokumen dan sekali sebagai Foto — supaya terbukti masternya
+selamat melewati rekompresi, bukan hanya terbaca di layar laptop.
+
+`tools/selftest.mjs` menjaga bagian yang tidak bisa diperbaiki setelah tercetak:
+prioritas alamat QR (`?url=` → `qrUrl` → halaman ini), geometri PNG (setiap modul
+wajib jatuh di piksel bulat), nama berkas, dan orientasi matriks pustaka vendor.
+`tools/smoke.mjs` membandingkan kanvas PNG modul-per-modul dengan matriksnya
+sendiri di browser sungguhan — itu yang membuktikan PNG-nya tidak tercermin.
 
 ---
 
 ## Pengembangan dan pengujian
 
 ```bash
-npm test        # selftest.mjs (71 pemeriksaan) + cek-impor.mjs
-npm run smoke   # 25 pemeriksaan di Chrome/Edge headless, kamera palsu
+npm test        # selftest.mjs (119 pemeriksaan) + cek-impor.mjs
+npm run smoke   # 38 pemeriksaan di Chrome/Edge headless, kamera palsu
 npm run cek     # cek-endpoint.mjs terhadap backend yang ter-deploy
 npm run icons   # regenerasi ikon PWA dari geometri di tools/make-icons.mjs
 ```
 
 | Alat | Yang dibuktikan |
 |---|---|
-| `tools/selftest.mjs` | Fungsi murni: sanitasi nama (apostrof, emoji, 400 masukan acak), nama berkas, matematika backoff + jitter, pembacaan EXIF big/little endian, pemilihan baris antrean, dan keutuhan pustaka QR di `vendor/`. |
+| `tools/selftest.mjs` | Fungsi murni: sanitasi nama (apostrof, emoji, 400 masukan acak), nama berkas, matematika backoff + jitter, pembacaan EXIF big/little endian, pemilihan baris antrean, keutuhan pustaka QR di `vendor/`, serta alamat, geometri PNG, dan nama berkas halaman cetak. |
 | `tools/cek-impor.mjs` | Tanpa bundler tidak ada yang memvalidasi jalur import. Memeriksa setiap import & ekspor, kelengkapan daftar precache `sw.js`, rujukan HTML, kontrak view, kemurnian modul, larangan CDN, dan larangan hotlink thumbnail Drive. |
 | `tools/smoke.mjs` | Di browser sungguhan: kamera palsu → JPEG, watermark benar-benar terbakar ke gambar (dibandingkan per piksel), base64 byte-identik, antrean terkuras sampai `terkirim`, kirim ulang kunci yang sama **tidak** membuat berkas kedua, seluruh daftar precache benar-benar masuk cache, dan endpoint backend **tidak** ikut ter-cache. |
 | `tools/cek-endpoint.mjs` | Terhadap backend nyata: versi hidup == versi lokal, jendela acara memuat 6 Des 2026 09:00 WIB, idempotensi dua lapis, token salah ditolak, bukan-JPEG ditolak. |
@@ -207,7 +254,7 @@ foto-nikah/
 │     ├─ indeks.js          satu-satunya pintu ke backend
 │     ├─ simpan-galeri.js   tiga jalur simpan ke galeri HP
 │     └─ views/             beranda (+jepret +hasil), saya, info
-├─ cetak/qr.html            kartu QR siap cetak
+├─ cetak/qr.html            kartu QR, poster, unduh PNG (qr-inti.js = logika murni)
 ├─ vendor/                  pustaka pihak ketiga di-pin, tanpa CDN
 ├─ apps-script/             backend + runbook pemasangan
 ├─ docs/uji-perangkat.md    checklist uji manual di HP nyata
@@ -247,6 +294,12 @@ foto-nikah/
   bukan hanya muncul setelah gagal.
 - **Google Drive gratis 15 GB dibagi dengan Gmail dan Google Photos.** Dua ribu
   foto bisa 6 GB. Periksa sisa penyimpanan jauh sebelum hari acara.
+- **Portrait dan landscape dua-duanya didukung, dan pratinjaunya jujur.** Kotak
+  viewfinder mengambil bentuknya dari rasio aliran kamera yang sebenarnya, lalu
+  mengikutinya lagi setiap kali HP diputar (lewat event `resize` milik
+  `<video>`). Jadi apa yang dibingkai tamu di layar adalah apa yang tersimpan —
+  bukan sekadar mirip. Jepretan tidak pernah dipotong; yang disimpan adalah
+  seluruh frame kamera.
 - Foto diunggah pada sisi panjang maks 2560 px, JPEG mutu 0,85 (sekitar
   600 KB–1,2 MB): cukup untuk cetak 4R, bukan berkas asli kamera. Angkanya ada di
   `assets/js/gambar.js`.

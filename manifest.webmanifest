@@ -7,7 +7,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#FAF3F0",
   "theme_color": "#C97B84",
   "categories": ["photo", "social", "utilities"],

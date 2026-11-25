@@ -133,6 +133,22 @@ export function sedangMenyala() {
 }
 
 /**
+ * Dimensi aliran kamera yang SEBENARNYA, bukan yang diminta.
+ *
+ * Constraint getUserMedia hanya "ideal": perangkat bebas memberi 4:3, 16:9,
+ * portrait, atau landscape sesuai sensor dan posisi HP. Kotak viewfinder harus
+ * mengikuti angka ini, karena inilah bentuk yang nanti benar-benar tersimpan.
+ *
+ * Mengembalikan rasio 0 bila video belum punya ukuran, supaya pemanggil bisa
+ * membedakan "belum siap" dari "kotak persegi".
+ */
+export function ukuranAliran(video) {
+  const lebar = (video && video.videoWidth) || 0;
+  const tinggi = (video && video.videoHeight) || 0;
+  return { lebar, tinggi, rasio: lebar > 0 && tinggi > 0 ? lebar / tinggi : 0 };
+}
+
+/**
  * Matikan kamera.
  *
  * Wajib dipanggil saat tamu meninggalkan panel jepret: lampu kamera yang terus

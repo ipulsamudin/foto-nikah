@@ -208,9 +208,25 @@ function modeSehat() {
   var dipakai = Number(prop.getProperty('hitung_' + kunciHari()) || 0);
   var batas = angkaPengaturan(cfg, 'maks_harian', PENGATURAN.MAKS_HARIAN);
 
+  // Kesiapan indeks ikut dilaporkan, karena kegagalannya tidak pernah terlihat
+  // dari jalur unggah: foto tetap mendarat di Drive dan balasannya tetap ok.
+  // Tanpa penanda ini, Sheet yang salah atau belum punya tab hanya ketahuan
+  // setelah acara, ketika indeksnya kosong dan tidak ada lagi yang bisa diulang.
+  var indeksSiap = false;
+  var pengaturanSiap = false;
+  try {
+    var ss = SpreadsheetApp.openById(PENGATURAN.ID_SPREADSHEET);
+    indeksSiap = Boolean(ss.getSheetByName(PENGATURAN.LEMBAR_INDEKS));
+    pengaturanSiap = Boolean(ss.getSheetByName(PENGATURAN.LEMBAR_PENGATURAN));
+  } catch (e) {
+    catat('SEHAT_SHEET_TIDAK_TERBACA', e);
+  }
+
   return balasJson({
     ok: true,
     aktif: String(cfg.aktif || 'YA').toUpperCase() === 'YA',
+    indeks_siap: indeksSiap,
+    pengaturan_siap: pengaturanSiap,
     zona: PENGATURAN.ZONA_WAKTU,
     waktu_server: sekarangJakarta(),
     jendela: {

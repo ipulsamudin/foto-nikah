@@ -10,6 +10,7 @@
     "smoke": "node tools/smoke.mjs",
     "test:all": "npm test && npm run smoke",
     "cek": "node tools/cek-endpoint.mjs",
+    "cetak": "node tools/cetak-pdf.mjs",
     "icons": "node tools/make-icons.mjs"
   },
   "license": "MIT"

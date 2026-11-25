@@ -47,40 +47,81 @@ body {
 .alat select, .alat input { padding: 7px 9px; font: inherit; border: 1px solid #ccc; border-radius: 8px; }
 .alat .catatan { flex: 1 1 100%; margin: 0; font-size: 12px; color: #666; }
 
+/* Tombol unduh dibuat sekunder: yang dipakai paling sering tetap Cetak, dan dua
+   tombol penuh warna bersebelahan membuat keduanya sama-sama tidak menonjol. */
+.alat button.sekunder {
+  background: #fff;
+  color: var(--rose-dark);
+  box-shadow: inset 0 0 0 1px var(--rose-deep);
+}
+
+/* min-height dipatok supaya toolbar tidak melompat saat pesan pertama muncul. */
+.alat .kabar {
+  flex: 1 1 100%;
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rose-dark);
+}
+
+/* Kotak halaman A4 yang TEPAT, bukan tinggi minimum.
+   min-height: 297mm dulu membuat lembar tumbuh mengikuti isi — 339mm untuk 2
+   kartu, 358mm untuk 4 — jadi kartu paling bawah terbelah ke halaman kedua saat
+   dicetak, dan halaman kedua itu ikut keluar dari printer setiap kali. Dengan
+   height tetap + grid-auto-rows: 1fr, tiap kartu mendapat jatah tinggi yang
+   pasti, dan apa yang terlihat di layar sama dengan yang keluar di kertas.
+
+   overflow: hidden adalah jaring pengaman terakhir supaya satu lembar tidak
+   pernah bisa menjadi dua halaman. Supaya ia tidak memotong isi diam-diam,
+   tools/cetak-pdf.mjs menggagalkan berkas yang halamannya bukan satu, dan
+   tools/smoke.mjs menggagalkan kartu yang isinya meluber dari kotaknya. */
 #lembar {
   display: grid;
   gap: 0;
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   margin: 18px auto;
   padding: 10mm;
   background: #fff;
   grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+  overflow: hidden;
 }
 
 #lembar[data-jumlah="4"] { grid-template-columns: 1fr 1fr; }
 #lembar[data-jumlah="8"] { grid-template-columns: 1fr 1fr; }
+/* Ditulis eksplisit walau sama dengan bawaan: kalau nanti kolom bawaan #lembar
+   diubah, poster tidak boleh ikut terbelah dua. */
+#lembar[data-jumlah="poster"] { grid-template-columns: 1fr; }
 
+/* Ukuran di bawah ini dipilih supaya isi kartu MUAT di jatah tingginya: 138,5mm
+   untuk 2 dan 4 per lembar, 69,25mm untuk 8. Mengubah salah satu angka tanpa
+   mengukur ulang akan membuat isi meluber melewati garis potong. */
 .kartu {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10mm 8mm;
+  padding: 5mm 8mm;
   text-align: center;
   background: var(--cream);
   border: 1px dashed #c9b7b2; /* garis potong */
 }
 
-.kartu .mempelai { margin: 0; font-family: var(--display); font-size: 18px; color: var(--rose-dark); }
-.kartu .tanggal { margin: 2px 0 6px; font-size: 11px; letter-spacing: 0.2em; color: var(--gold); }
-.kartu h1 { margin: 0 0 8mm; font-family: var(--display); font-size: 22px; font-weight: 600; }
+.kartu .mempelai { margin: 0; font-family: var(--display); font-size: 17px; color: var(--rose-dark); }
+.kartu .tanggal { margin: 2px 0 4px; font-size: 11px; letter-spacing: 0.2em; color: var(--gold); }
+.kartu h1 { margin: 0 0 3mm; font-family: var(--display); font-size: 21px; font-weight: 600; }
 
-.kartu .qr { width: 45mm; height: 45mm; background: #fff; padding: 2mm; }
+/* 45mm dipertahankan. Ruang untuk memuat lembar ke A4 diambil dari padding,
+   spasi, dan tinggi baris -- TIDAK dari QR: ukuran QR yang menentukan dari
+   berapa jauh tamu bisa memindai, dan kartu 2-per-lembar inilah yang berdiri
+   di standee meja. */
+.kartu .qr { width: 45mm; height: 45mm; background: #fff; padding: 1.5mm; }
 .kartu .qr svg { width: 100%; height: 100%; display: block; }
 
 .kartu .alamat {
-  margin: 4mm 0 0;
+  margin: 3mm 0 0;
   font-family: ui-monospace, "Courier New", monospace;
   font-size: 11px;
   color: var(--brown);
@@ -88,24 +129,24 @@ body {
 }
 
 .kartu .langkah {
-  margin: 5mm 0 0;
+  margin: 3mm 0 0;
   padding-left: 5mm;
   text-align: left;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.55;
 }
 
 .kartu .jaring {
-  margin: 4mm 0 0;
-  padding: 3mm;
+  margin: 3mm 0 0;
+  padding: 2.5mm;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.45;
   background: #fff;
   border-left: 3px solid var(--gold);
   text-align: left;
 }
 
-.kartu .kaki { margin: 3mm 0 0; font-size: 11px; color: var(--brown); }
+.kartu .kaki { margin: 2mm 0 0; font-size: 11px; color: var(--brown); }
 .kartu .sesi {
   display: inline-block;
   margin-right: 6px;
@@ -116,19 +157,70 @@ body {
   font-weight: 600;
 }
 
-.kartu .wifi { margin: 3mm 0 0; font-size: 10px; color: #8a7070; }
+.kartu .wifi { margin: 2mm 0 0; font-size: 10px; color: #8a7070; }
 
-/* Varian kecil: delapan per lembar, hanya yang paling penting */
-.kartu.kecil { padding: 6mm 4mm; }
-.kartu.kecil h1 { font-size: 15px; margin-bottom: 4mm; }
+/* Varian sedang: empat per lembar.
+   Kolomnya separuh lebar, jadi teks yang sama membungkus jauh lebih banyak dan
+   kartunya tumbuh 11mm melewati jatahnya walau angka di .kartu sudah dikecilkan.
+   Karena itu varian ini punya skala sendiri, bukan sekadar mewarisi. */
+#lembar[data-jumlah="4"] .kartu { padding: 5mm 6mm; }
+#lembar[data-jumlah="4"] .kartu .mempelai { font-size: 15px; }
+#lembar[data-jumlah="4"] .kartu h1 { font-size: 17px; margin-bottom: 4mm; }
+#lembar[data-jumlah="4"] .kartu .qr { width: 36mm; height: 36mm; }
+#lembar[data-jumlah="4"] .kartu .alamat { font-size: 10px; }
+#lembar[data-jumlah="4"] .kartu .langkah { font-size: 11px; line-height: 1.45; }
+#lembar[data-jumlah="4"] .kartu .jaring { font-size: 10px; padding: 2mm; }
+#lembar[data-jumlah="4"] .kartu .kaki,
+#lembar[data-jumlah="4"] .kartu .wifi { font-size: 9px; }
+
+/* Varian kecil: delapan per lembar, hanya yang paling penting.
+   Jatahnya cuma 69,25mm, jadi tipografinya dikecilkan sampai batas keterbacaan
+   supaya QR tetap 32mm: di kartu sekecil ini teks hiasan tidak ada gunanya kalau
+   QR-nya sendiri jadi terlalu kecil untuk dipindai. */
+.kartu.kecil { padding: 3mm 4mm; }
+.kartu.kecil .mempelai { font-size: 13px; }
+.kartu.kecil .tanggal { font-size: 9px; margin: 1px 0 2px; }
+.kartu.kecil h1 { font-size: 13px; margin-bottom: 2mm; }
 .kartu.kecil .qr { width: 32mm; height: 32mm; }
+.kartu.kecil .alamat { font-size: 9px; margin-top: 2mm; }
+.kartu.kecil .kaki { font-size: 9px; margin-top: 1mm; }
 .kartu.kecil .langkah, .kartu.kecil .jaring, .kartu.kecil .wifi { display: none; }
+
+/* Mode poster: satu QR memenuhi halaman, untuk X-banner atau papan pintu masuk.
+   Tanpa garis potong karena tidak ada yang dipotong.
+
+   Tinggi dipatok 275mm: ditambah padding #lembar 10mm x 2 menjadi 295mm, masih
+   di bawah 297mm. Satu milimeter kelebihan melahirkan halaman kedua yang kosong,
+   dan itu baru ketahuan setelah kertasnya keluar. */
+.kartu.poster {
+  height: 275mm;
+  padding: 6mm;
+  border: 0;
+  break-inside: avoid;
+}
+
+.kartu.poster .mempelai { font-size: 28px; }
+.kartu.poster .tanggal { font-size: 14px; }
+.kartu.poster h1 { font-size: 40px; margin-bottom: 6mm; }
+
+/* 170mm mengikuti aturan praktis jarak pindai: sekitar 10x lebar kode, jadi
+   kira-kira 1,7 m. Untuk jarak lebih jauh, besarkan PDF-nya di percetakan --
+   QR di dalamnya masih vektor, jadi tidak ada ketajaman yang hilang. */
+.kartu.poster .qr { width: 170mm; height: 170mm; padding: 4mm; }
+
+.kartu.poster .pindai { margin: 6mm 0 0; font-family: var(--display); font-size: 26px; }
+.kartu.poster .alamat { font-size: 16px; word-break: normal; }
+.kartu.poster .kaki { margin-top: 4mm; font-size: 18px; }
+.kartu.poster .sesi { padding: 2px 14px; font-size: 18px; }
 
 @media print {
   @page { size: A4 portrait; margin: 0; }
   body { background: #fff; }
   .no-print { display: none !important; }
-  #lembar { width: auto; min-height: auto; margin: 0; box-shadow: none; }
+  /* width/height 210x297mm DIPERTAHANKAN, tidak dikembalikan ke auto: itulah
+     yang membuat pratinjau cetak sama persis dengan layar, dan yang menjamin
+     satu lembar tetap satu halaman. */
+  #lembar { margin: 0; box-shadow: none; }
   /* Ornamen emas dan latar krem harus tetap tercetak */
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

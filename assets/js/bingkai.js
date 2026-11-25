@@ -12,7 +12,14 @@
 const EMAS = '#C9A66B';
 
 export function gambarBingkai(ctx, w, h, { teks = '', namaTamu = '' } = {}) {
-  const satuan = h / 1000;
+  // Ukuran teks dan ornamen diikatkan ke SISI PENDEK, bukan ke tinggi.
+  //
+  // Sejak viewfinder boleh portrait maupun landscape, memakai tinggi membuat
+  // watermark terlihat besar di foto tegak dan mengecil di foto miring — padahal
+  // keduanya dicetak berdampingan di album yang sama. Sisi pendek membuat
+  // ukurannya terasa sama di kedua orientasi.
+  const sisi = Math.min(w, h);
+  const satuan = sisi / 1000;
 
   // Scrim gelap di bagian bawah: menjamin teks tetap terbaca di atas gaun putih
   // maupun latar gelap. Tanpa ini, watermark hilang di separuh foto.
@@ -24,8 +31,8 @@ export function gambarBingkai(ctx, w, h, { teks = '', namaTamu = '' } = {}) {
   ctx.fillRect(0, h - tinggiScrim, w, tinggiScrim);
 
   // Ornamen sudut: dua garis emas tipis di setiap sudut.
-  const panjang = Math.min(w, h) * 0.07;
-  const tepi = Math.min(w, h) * 0.035;
+  const panjang = sisi * 0.07;
+  const tepi = sisi * 0.035;
   ctx.strokeStyle = EMAS;
   ctx.lineWidth = Math.max(1, 3 * satuan);
   ctx.globalAlpha = 0.9;
@@ -49,12 +56,12 @@ export function gambarBingkai(ctx, w, h, { teks = '', namaTamu = '' } = {}) {
   ctx.shadowBlur = 8 * satuan;
 
   if (teks) {
-    ctx.font = `${Math.round(h * 0.028)}px Georgia, "Times New Roman", serif`;
+    ctx.font = `${Math.round(sisi * 0.032)}px Georgia, "Times New Roman", serif`;
     ctx.fillText(teks, w / 2, h - h * 0.055);
   }
   if (namaTamu) {
     ctx.globalAlpha = 0.78;
-    ctx.font = `${Math.round(h * 0.017)}px -apple-system, system-ui, sans-serif`;
+    ctx.font = `${Math.round(sisi * 0.020)}px -apple-system, system-ui, sans-serif`;
     ctx.fillText(namaTamu, w / 2, h - h * 0.025);
     ctx.globalAlpha = 1;
   }

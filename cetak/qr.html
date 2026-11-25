@@ -10,20 +10,32 @@
 <body>
   <div class="alat no-print">
     <button id="cetak" type="button">Cetak</button>
+    <button id="unduh" class="sekunder" type="button">Unduh PNG</button>
     <label>Kartu per lembar
       <select id="jumlah">
         <option value="2">2 (besar, untuk standee meja)</option>
         <option value="4">4 (sedang)</option>
         <option value="8">8 (kecil, untuk tiap kursi)</option>
+        <option value="poster">Poster — 1 QR besar (X-banner / pintu masuk)</option>
       </select>
     </label>
     <label>Label sesi
       <input id="sesi" type="text" placeholder="akad / resepsi / meja-01" maxlength="24">
     </label>
+    <p id="kabar" class="kabar" role="status" aria-live="polite"></p>
     <p class="catatan">
       Sesi ikut masuk ke tautan QR, jadi foto dari standee berbeda bisa dipilah di
       Google Sheet. Cetak di kertas tebal, lalu <b>uji scan dari jarak 1,5 meter dengan
       tiga HP berbeda</b> sebelum memesan banyak.
+    </p>
+    <p class="catatan">
+      <b>Unduh PNG</b> menyimpan QR-nya saja — dengan quiet zone dan latar putih, sekitar
+      2000 px — untuk percetakan, undangan digital, WhatsApp, dan Instagram. Kirim via
+      WhatsApp sebagai <b>Dokumen</b>, bukan Foto, supaya tidak direkompresi. Untuk X-banner
+      besar, pilih <b>Poster</b> lalu Cetak &rarr; <b>Simpan sebagai PDF</b>: QR di dalam PDF
+      masih vektor, jadi percetakan bisa membesarkannya tanpa batas. Tombol unduh ditujukan
+      untuk laptop; di iPhone lama berkasnya terbuka di tab baru &mdash; tekan lama lalu
+      Simpan ke Foto.
     </p>
   </div>
 

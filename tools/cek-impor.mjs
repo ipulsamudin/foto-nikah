@@ -189,7 +189,7 @@ for (const v of views) {
 
 /* ------------------------------------------------------ 6: kemurnian modul */
 
-const MURNI = ['assets/js/fmt.js', 'assets/js/exif.js'];
+const MURNI = ['assets/js/fmt.js', 'assets/js/exif.js', 'cetak/qr-inti.js'];
 for (const m of MURNI) {
   try {
     await import('file:///' + join(AKAR, m).replace(/\\/g, '/'));

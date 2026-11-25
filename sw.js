@@ -9,7 +9,7 @@
 // sudah diantre. Janji aplikasi ini — "jepret sekarang, kirim nanti" — hanya
 // benar kalau shell-nya offline-first.
 
-const VERSI = 'foto-nikah-v4';
+const VERSI = 'foto-nikah-v5';
 
 const ASET = [
   './',
@@ -39,10 +39,12 @@ const ASET = [
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
   // Halaman cetak ikut di-precache: kartu QR mungkin dicetak dari laptop di
-  // venue yang tidak punya internet.
+  // venue yang tidak punya internet. Unduh PNG juga bekerja offline — kanvas
+  // tidak butuh jaringan sama sekali.
   './cetak/qr.html',
   './cetak/qr.css',
   './cetak/qr.js',
+  './cetak/qr-inti.js',
   './vendor/qrcode-generator-1.4.4.esm.js'
 ];
 
