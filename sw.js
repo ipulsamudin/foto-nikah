@@ -9,7 +9,7 @@
 // sudah diantre. Janji aplikasi ini — "jepret sekarang, kirim nanti" — hanya
 // benar kalau shell-nya offline-first.
 
-const VERSI = 'foto-nikah-v5';
+const VERSI = 'foto-nikah-v6';
 
 const ASET = [
   './',
@@ -24,6 +24,7 @@ const ASET = [
   './assets/js/exif.js',
   './assets/js/tamu.js',
   './assets/js/kamera.js',
+  './assets/js/orientasi.js',
   './assets/js/berkas-kamera.js',
   './assets/js/gambar.js',
   './assets/js/bingkai.js',

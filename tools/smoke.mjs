@@ -258,6 +258,36 @@ try {
     JSON.stringify(tangkap)
   );
 
+  /* ------------------------------------------- 3a. rotasi kanvas saat menjepret */
+
+  // Membuktikan jalur yang menyelamatkan tamu dengan auto-rotate terkunci:
+  // menjepret dengan rotasi 90 harus menukar sisi hasilnya, bukan sekadar
+  // memutar tampilan.
+  const putar = await cdp.nilai(`
+    const gbr = await import('./assets/js/gambar.js');
+    const video = document.querySelector('#bidik-video');
+    const tanpa = await gbr.dariVideo(video);
+    const dengan = await gbr.dariVideo(video, { rotasi: 90 });
+    const balik = await gbr.putarBlob(dengan.blob, 270);
+    return {
+      tanpa: [tanpa.lebar, tanpa.tinggi],
+      dengan: [dengan.lebar, dengan.tinggi],
+      balikKeAsal: [balik.lebar, balik.tinggi],
+      jpeg: dengan.blob.type
+    };
+  `);
+  cek(
+    'jepret dengan rotasi 90 menukar sisi hasil',
+    putar.dengan[0] === putar.tanpa[1] && putar.dengan[1] === putar.tanpa[0],
+    JSON.stringify(putar)
+  );
+  cek(
+    'putarBlob 270 mengembalikan ke bentuk semula',
+    putar.balikKeAsal[0] === putar.tanpa[0] && putar.balikKeAsal[1] === putar.tanpa[1],
+    JSON.stringify(putar)
+  );
+  cek('hasil rotasi tetap JPEG', putar.jpeg === 'image/jpeg', JSON.stringify(putar));
+
   /* ------------------------------------- 3b. WYSIWYG: kotak = aliran = hasil */
 
   // Invarian yang hilang selama ini, dan yang melahirkan cacat "foto selalu

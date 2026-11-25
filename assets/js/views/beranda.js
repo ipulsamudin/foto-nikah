@@ -11,11 +11,12 @@ import { esc, uuid, namaBerkas, ukuranSingkat } from '../fmt.js';
 import { namaTersimpan, simpanNama, sudahDiisi, namaDariUrl, namaEfektif, sesiDariUrl, idPerangkat } from '../tamu.js';
 import * as kamera from '../kamera.js';
 import { pasangPemilih } from '../berkas-kamera.js';
-import { dariVideo, dariBerkas, buatThumb, GalatGambar } from '../gambar.js';
+import { dariVideo, dariBerkas, buatThumb, putarBlob, GalatGambar } from '../gambar.js';
 import { gambarBingkai } from '../bingkai.js';
 import * as antrean from '../antrean.js';
 import { dorong } from '../unggah.js';
 import { simpanKeGaleri, unduhOtomatis, bisaBagikanBerkas, iniIos } from '../simpan-galeri.js';
+import { mulaiPantauOrientasi, mintaIzinSensor } from '../orientasi.js';
 
 const KONFIG = () => globalThis.FOTO_NIKAH || {};
 
@@ -23,15 +24,28 @@ let taman = null;
 let pemilih = null;
 let fotoTerakhir = null; // { blob, nama, kunci }
 
+/**
+ * Berapa derajat kanvas perlu diputar supaya foto keluar tegak.
+ *
+ * Tetap 0 bila rotasi layar HP mengikuti posisi fisiknya (auto-rotate menyala),
+ * dan menjadi 90/270 ketika rotasi layar dikunci sementara HP dimiringkan —
+ * keadaan yang membuat foto keluar rebah sebelum ini.
+ */
+let rotasiFoto = 0;
+let lepasPantauOrientasi = null;
+
 export const judulHalaman = 'Ambil Foto';
 
 export async function bongkar() {
   kamera.hentikan();
   if (taman) taman.bersihkan();
   if (pemilih) pemilih.lepas();
+  if (lepasPantauOrientasi) lepasPantauOrientasi();
   taman = null;
   pemilih = null;
   fotoTerakhir = null;
+  lepasPantauOrientasi = null;
+  rotasiFoto = 0;
 }
 
 export async function render(wadah) {
@@ -76,20 +90,21 @@ function gambarPanelNama(induk, acara) {
   const isian = el('#isi-nama', induk);
   isian.value = namaTersimpan() || namaDariUrl();
 
-  const lanjut = async () => {
-    simpanNama(isian.value);
+  const lanjut = async (nama) => {
+    simpanNama(nama);
+    // Izin sensor HARUS diminta dari dalam ketukan — iOS menolak permintaan yang
+    // datang belakangan. Ketukan "Mulai" ini satu-satunya kesempatan alami
+    // sebelum tamu mulai menjepret. Hasilnya tidak ditunggu-tunggu: ditolak pun
+    // booth tetap jalan, tinggal tombol Putar manual yang mengambil alih.
+    if (KONFIG().putarOtomatis !== false) await mintaIzinSensor();
     tampilkanPanel('jepret');
     await nyalakanKamera();
   };
 
-  el('#tombol-lanjut', induk).addEventListener('click', lanjut);
-  el('#tombol-lewati', induk).addEventListener('click', async () => {
-    simpanNama('');
-    tampilkanPanel('jepret');
-    await nyalakanKamera();
-  });
+  el('#tombol-lanjut', induk).addEventListener('click', () => lanjut(isian.value));
+  el('#tombol-lewati', induk).addEventListener('click', () => lanjut(''));
   isian.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') lanjut();
+    if (e.key === 'Enter') lanjut(isian.value);
   });
 }
 
@@ -168,11 +183,33 @@ function pasangRasioBidik(video) {
   const terapkan = () => {
     const { lebar, tinggi } = kamera.ukuranAliran(video);
     if (!lebar || !tinggi) return;
-    kotak.style.setProperty('--rasio-bidik', `${lebar} / ${tinggi}`);
+
+    // Kotak menunjukkan bentuk AKHIR foto, bukan bentuk mentah aliran: kalau
+    // kanvas nanti diputar 90°, sisi-sisinya tertukar. Tanpa ini, tamu kembali
+    // melihat sesuatu yang berbeda dari yang tersimpan — hanya dengan arah
+    // sebaliknya dari cacat sebelumnya.
+    const tukar = rotasiFoto === 90 || rotasiFoto === 270;
+    kotak.style.setProperty('--rasio-bidik', tukar ? `${tinggi} / ${lebar}` : `${lebar} / ${tinggi}`);
+
+    // Pratinjaunya ikut diputar supaya tamu melihat gambar tegak, sama seperti
+    // yang akan tersimpan.
+    kotak.classList.toggle('putar-90', rotasiFoto === 90);
+    kotak.classList.toggle('putar-270', rotasiFoto === 270);
+    kotak.classList.toggle('putar-180', rotasiFoto === 180);
   };
 
   terapkan();
   video.addEventListener('resize', terapkan);
+
+  if (KONFIG().putarOtomatis === false) return;
+
+  // Pantau posisi fisik HP. Saat rotasi layar dikunci, inilah satu-satunya
+  // sumber yang tahu bahwa HP sudah dimiringkan.
+  if (lepasPantauOrientasi) lepasPantauOrientasi();
+  lepasPantauOrientasi = mulaiPantauOrientasi((derajat) => {
+    rotasiFoto = derajat;
+    terapkan();
+  });
 }
 
 function tampilPesanBidik(html) {
@@ -202,7 +239,7 @@ async function jepretSekarang(tombol) {
   const video = el('#bidik-video');
   try {
     const hasil = await denganSibuk(tombol, '', () =>
-      dariVideo(video, { gambarOverlay: overlay() })
+      dariVideo(video, { gambarOverlay: overlay(), rotasi: rotasiFoto })
     );
     await simpanFoto(hasil);
   } catch (e) {
@@ -328,12 +365,23 @@ function tampilkanHasil({ blob, berkas, kunci, tanpaAntrean, otomatis }) {
 
   induk.innerHTML = `
     <img id="hasil-gambar" class="hasil-gambar" src="${url}" alt="Foto yang baru diambil">
+    <div class="baris-putar">
+      <button id="putar-kiri" class="tombol mini" aria-label="Putar ke kiri">&#8634; Putar</button>
+      <button id="putar-kanan" class="tombol mini" aria-label="Putar ke kanan">Putar &#8635;</button>
+    </div>
     <p class="redup kecil">${ukuranSingkat(blob.size)} &middot; ${
       tanpaAntrean ? 'belum masuk antrean' : 'tersimpan di HP, menunggu terkirim'
     }</p>
     ${bagianSimpan}
     <button id="tombol-lagi" class="tombol halus">Ambil foto lagi</button>
   `;
+
+  el('#putar-kiri', induk).addEventListener('click', (ev) =>
+    denganSibuk(ev.currentTarget, '…', () => putarHasil(270))
+  );
+  el('#putar-kanan', induk).addEventListener('click', (ev) =>
+    denganSibuk(ev.currentTarget, '…', () => putarHasil(90))
+  );
 
   // Blob sudah siap sebelum tombol muncul, jadi handler di bawah bisa memanggil
   // share tanpa await apa pun — syarat mutlak agar share sheet iOS tidak batal.
@@ -344,6 +392,76 @@ function tampilkanHasil({ blob, berkas, kunci, tanpaAntrean, otomatis }) {
   });
 
   tampilkanPanel('hasil');
+}
+
+/**
+ * Putar foto yang baru saja diambil.
+ *
+ * Jaring pengaman untuk perangkat yang sensornya tidak tersedia, izinnya
+ * ditolak, atau arah putar otomatisnya meleset.
+ *
+ * Perlakuan berbeda untuk foto yang SUDAH terkirim: berkas yang sudah mendarat
+ * di Drive tidak bisa disunting dari sini, dan berpura-pura bisa akan membuat
+ * tamu mengira yang lama sudah tergantikan. Jadi versi terputarnya dikirim
+ * sebagai foto baru, dan itu dikatakan apa adanya.
+ */
+async function putarHasil(derajat) {
+  if (!fotoTerakhir) return;
+  const { blob, nama, kunci } = fotoTerakhir;
+
+  let baru;
+  try {
+    baru = await putarBlob(blob, derajat);
+  } catch (e) {
+    notif(e?.message || 'Foto tidak bisa diputar', 'galat');
+    return;
+  }
+
+  let thumb = null;
+  try {
+    thumb = await buatThumb(baru.blob);
+  } catch {
+    /* thumbnail hanya kenyamanan halaman "Foto Saya" */
+  }
+
+  const baris = await antrean.ambil(kunci).catch(() => null);
+
+  if (baris && baris.status !== antrean.STATUS.TERKIRIM) {
+    // Server belum pernah melihat kunci ini, jadi menimpa isinya aman dan
+    // idempotensinya tetap utuh.
+    await antrean.perbarui(kunci, {
+      blob: baru.blob,
+      thumb,
+      ukuran: baru.blob.size,
+      lebar: baru.lebar,
+      tinggi: baru.tinggi,
+      keGaleri: false
+    });
+    tampilkanHasil({ blob: baru.blob, berkas: nama, kunci, otomatis: false });
+    notif('Foto diputar.', 'sukses');
+    return;
+  }
+
+  const kunciBaru = uuid();
+  const berkasBaru = namaBerkas({ waktu: Date.now(), nama: namaEfektif(), kunci: kunciBaru });
+  await antrean.tambah({
+    kunci: kunciBaru,
+    waktu: Date.now(),
+    namaTamu: namaEfektif(),
+    sesi: sesiDariUrl(),
+    device: idPerangkat(),
+    mime: 'image/jpeg',
+    lebar: baru.lebar,
+    tinggi: baru.tinggi,
+    ukuran: baru.blob.size,
+    namaBerkas: berkasBaru,
+    sumber: 'kamera',
+    blob: baru.blob,
+    thumb
+  });
+  tampilkanHasil({ blob: baru.blob, berkas: berkasBaru, kunci: kunciBaru, otomatis: false });
+  notif('Foto yang sudah terkirim tidak bisa diubah, jadi versi terputarnya dikirim sebagai foto baru.', 'info', 7000);
+  dorong();
 }
 
 function simpanLalu() {

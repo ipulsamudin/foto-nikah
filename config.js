@@ -41,6 +41,12 @@ window.FOTO_NIKAH = {
   // bawaan sudah menyimpan aslinya sendiri.
   simpanOtomatis: true,
 
+  // true = booth membaca sensor gerak untuk tahu posisi FISIK HP, lalu memutar
+  // foto sendiri ketika rotasi layar HP terkunci sementara HP dimiringkan.
+  // Matikan bila di lapangan sensornya mengacau; tombol Putar manual di layar
+  // hasil tetap tersedia apa pun nilainya.
+  putarOtomatis: true,
+
   // false = jepret tanpa bingkai/watermark.
   watermark: true,
 

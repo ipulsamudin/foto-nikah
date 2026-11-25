@@ -100,7 +100,7 @@ function gambarTurun(sumber, lebarSumber, tinggiSumber, lebar, tinggi) {
  * `gambarOverlay` dipanggil dengan (ctx, lebar, tinggi) supaya pemanggil bebas
  * menentukan bingkai/watermark tanpa modul ini perlu tahu soal tema pernikahan.
  */
-export async function dariVideo(video, { gambarOverlay, maks = SISI_MAKS } = {}) {
+export async function dariVideo(video, { gambarOverlay, maks = SISI_MAKS, rotasi = 0 } = {}) {
   const lebarAsli = video.videoWidth;
   const tinggiAsli = video.videoHeight;
   if (!lebarAsli || !tinggiAsli) throw new Error('Kamera belum siap');
@@ -108,12 +108,45 @@ export async function dariVideo(video, { gambarOverlay, maks = SISI_MAKS } = {})
   const { lebar, tinggi } = ukuranTerskala(lebarAsli, tinggiAsli, maks);
   const { c, ctx } = gambarTurun(video, lebarAsli, tinggiAsli, lebar, tinggi);
   try {
-    if (gambarOverlay) await gambarOverlay(ctx, lebar, tinggi);
-    const { blob } = await encodeJpeg(c);
-    return { blob, lebar, tinggi, sumber: 'kamera' };
+    const hasil = rotasi ? putarKanvas(c, rotasi) : { c, ctx, lebar, tinggi };
+    try {
+      // Overlay digambar SESUDAH rotasi, di ruang kanvas final. Kalau digambar
+      // sebelum, watermark ikut rebah bersama gambarnya — persis cacat yang
+      // membuat foto miring terlihat makin kacau.
+      if (gambarOverlay) await gambarOverlay(hasil.ctx, hasil.lebar, hasil.tinggi);
+      const { blob } = await encodeJpeg(hasil.c);
+      return { blob, lebar: hasil.lebar, tinggi: hasil.tinggi, rotasi, sumber: 'kamera' };
+    } finally {
+      if (hasil.c !== c) lepasKanvas(hasil.c);
+    }
   } finally {
     lepasKanvas(c);
   }
+}
+
+/**
+ * Putar isi kanvas 90/180/270 derajat ke kanvas baru.
+ *
+ * Dibutuhkan karena saat rotasi layar HP dikunci, aliran kamera tetap dilaporkan
+ * portrait sementara pemandangannya sudah rebah. Memutar di sini — bukan
+ * mengandalkan EXIF — membuat berkas yang mendarat di Drive benar apa adanya,
+ * tanpa bergantung pada penampil mana pun menghormati tag orientasi.
+ */
+export function putarKanvas(sumber, derajat) {
+  const d = ((Math.round(derajat / 90) * 90) % 360 + 360) % 360;
+  if (d === 0) return { c: sumber, ctx: sumber.getContext('2d'), lebar: sumber.width, tinggi: sumber.height };
+
+  const tukar = d === 90 || d === 270;
+  const lebar = tukar ? sumber.height : sumber.width;
+  const tinggi = tukar ? sumber.width : sumber.height;
+
+  const c = kanvas(lebar, tinggi);
+  const ctx = c.getContext('2d');
+  ctx.translate(lebar / 2, tinggi / 2);
+  ctx.rotate((d * Math.PI) / 180);
+  ctx.drawImage(sumber, -sumber.width / 2, -sumber.height / 2);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  return { c, ctx, lebar, tinggi };
 }
 
 // --- Orientasi EXIF -------------------------------------------------------
@@ -232,6 +265,32 @@ export class GalatGambar extends Error {
     super(pesan);
     this.name = 'GalatGambar';
     this.kode = kode;
+  }
+}
+
+/**
+ * Putar sebuah blob JPEG 90/180/270 derajat.
+ *
+ * Dipakai tombol Putar manual di layar hasil — jaring pengaman ketika deteksi
+ * sensor tidak tersedia (izin ditolak di iOS, perangkat tanpa sensor) atau
+ * ketika arah putarnya ternyata tidak sesuai di suatu perangkat.
+ */
+export async function putarBlob(blob, derajat) {
+  const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  let antara = null;
+  try {
+    antara = kanvas(bitmap.width, bitmap.height);
+    antara.getContext('2d').drawImage(bitmap, 0, 0);
+    const hasil = putarKanvas(antara, derajat);
+    try {
+      const { blob: baru } = await encodeJpeg(hasil.c);
+      return { blob: baru, lebar: hasil.lebar, tinggi: hasil.tinggi };
+    } finally {
+      if (hasil.c !== antara) lepasKanvas(hasil.c);
+    }
+  } finally {
+    lepasKanvas(antara);
+    bitmap.close?.();
   }
 }
 

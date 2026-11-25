@@ -37,6 +37,12 @@ import {
 } from '../cetak/qr-inti.js';
 
 import { ukuranAliran } from '../assets/js/kamera.js';
+import {
+  sudutDariSensor,
+  rotasiTambahan,
+  normalkanSudut,
+  AMBANG_MIRING
+} from '../assets/js/orientasi.js';
 
 let lulus = 0;
 const gagal = [];
@@ -543,6 +549,37 @@ sama('ukuranAliran: belum siap -> rasio 0', ukuranAliran({ videoWidth: 0, videoH
 sama('ukuranAliran: elemen tidak ada', ukuranAliran(null), { lebar: 0, tinggi: 0, rasio: 0 });
 cek('ukuranAliran: landscape rasio > 1', ukuranAliran({ videoWidth: 2560, videoHeight: 1920 }).rasio > 1);
 cek('ukuranAliran: portrait rasio < 1', ukuranAliran({ videoWidth: 1920, videoHeight: 2560 }).rasio < 1);
+
+/* --------------------------------------------- orientasi fisik perangkat */
+
+// Inti dari bug "foto miring": saat rotasi layar HP dikunci, browser tidak
+// melihat apa pun berubah. Semua logikanya murni, jadi bisa dibuktikan di sini
+// tanpa HP sama sekali.
+
+sama('sudut: HP tegak', sudutDariSensor({ beta: 70, gamma: 0 }), 0);
+sama('sudut: miring kiri', sudutDariSensor({ beta: 0, gamma: -80 }), 90);
+sama('sudut: miring kanan', sudutDariSensor({ beta: 0, gamma: 80 }), 270);
+sama('sudut: terbalik', sudutDariSensor({ beta: -70, gamma: 0 }), 180);
+
+// HP ditaruh datar di meja: beta dan gamma mendekati nol dan tidak bermakna.
+// Tanpa ambang, foto bisa diputar tanpa alasan di tengah acara.
+sama('sudut: HP datar di meja -> tidak diputar', sudutDariSensor({ beta: 2, gamma: -3 }), 0);
+sama('sudut: tepat di bawah ambang', sudutDariSensor({ beta: 0, gamma: -(AMBANG_MIRING - 1) }), 0);
+sama('sudut: tepat di ambang', sudutDariSensor({ beta: 0, gamma: -AMBANG_MIRING }), 90);
+sama('sudut: pembacaan rusak', sudutDariSensor({ beta: null, gamma: undefined }), 0);
+sama('sudut: tanpa argumen', sudutDariSensor(), 0);
+
+// Dua kasus yang menjadi alasan seluruh modul ini ada:
+sama('rotasi: auto-rotate MENYALA (fisik 90, layar 90) -> 0', rotasiTambahan(90, 90), 0);
+sama('rotasi: auto-rotate TERKUNCI (fisik 90, layar 0) -> 90', rotasiTambahan(90, 0), 90);
+sama('rotasi: terkunci miring kanan (fisik 270, layar 0) -> 270', rotasiTambahan(270, 0), 270);
+sama('rotasi: HP tegak, layar tegak -> 0', rotasiTambahan(0, 0), 0);
+sama('rotasi: layar lebih maju dari fisik', rotasiTambahan(0, 90), 270);
+
+sama('normalkanSudut: negatif', normalkanSudut(-90), 270);
+sama('normalkanSudut: lebih dari 360', normalkanSudut(450), 90);
+sama('normalkanSudut: dibulatkan ke kelipatan 90', normalkanSudut(88), 90);
+sama('normalkanSudut: bukan angka', normalkanSudut('x'), 0);
 
 /* -------------------------------------------------------------------- hasil */
 
